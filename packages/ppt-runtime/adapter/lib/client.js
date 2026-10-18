@@ -1364,13 +1364,6 @@ button[data-desktop-ppt]:focus-visible{outline:2px solid var(--dsw-alias-label-p
 				locale: NS,
 				inject: injectHero
 			}, OfficePptStandardInputAccessory));
-			ctx.slots.inject("conversation.chat.userMessageFooter", () => ctx.slots.register({
-				name: "conversation.chat.userMessageFooter",
-				id: "dsh-ppt",
-				order: 20,
-				locale: NS,
-				inject: injectHero
-			}, OfficePptOpeningTemplateCard));
 			ctx.slots.inject("conversation.hero.dock", () => ctx.slots.register({
 				name: "conversation.hero.dock",
 				id: "dsh-ppt",

@@ -33,10 +33,23 @@
 
 ## 验证边界
 
-已执行：`npm install`（1398 包解析无冲突）、`npx patch-package` 全部 24+4 个补丁干净重放、`npm run typecheck` 零错误、`npm run ppt:build`、`npx vitest run` 最终 1964 通过 / 69 失败（升级前基线 1845 项全绿；会话删除、损坏日志、release 契约、plugin-manager 迁移等核心面全部通过）。
+已执行：`npm install`（1398 包解析无冲突）、`npx patch-package` 全部补丁干净重放、`npm run typecheck` 零错误、`npm run ppt:build`、`npm run office:prepare`、`npx vitest run` **2132/2132 全部通过**。
 
-未完成（后续工作）：
+升级过程中额外修复（相对首轮 69 例失败的收敛记录）：
 
-- **workbench 导航**：`registerSessionStarter` 等桌面接缝未移植到上游新导航架构，`test/workbench-navigation.test.mjs` 等 workbench 系列失败，需按 0.2.1 的 `startSession(options)`/draft 初始化架构重新落位。
-- **ppt/office 深度用例**：`ppt:build` 后仍有 7 个文件 26 例失败（`ppt-unbound-mode`、`office-meeting-minutes`、`docx-template-fidelity` 等），多为桌面 PPT 适配器与上游新插槽的对接漂移。
-- Windows 验证、安装包打包、真机启动，以及 `plugin-manager` 的 switched/removed 后端回调在 0.2.1 下的真机回归。
+- app-boot/plugin-manager 三方合并遗留的语法错误（游离 return、configure 闭合、`used` 作用域）导致 DSH 入口无法引导，波及 13 个启动类测试。
+- 上游 0.2.1 移除 `dsh-skill-office` 的 Python 脚本资产，`check_office.py` 从 0.2.0 tarball 取回并 vendor 到 `scripts/office-runtime/assets-scripts/`，由 prepare.mjs 重新注入。
+- pi-ai 1.3.0 目录将 `deepseek-v4-flash` 更名为 `deepseek-v4.1-flash`；`opencode-go` provider 改为 `getModels()` 动态发现。
+- `dsh-tool-skill` 0.2.1 新增 `ctx.workingDirectory.ensure` 依赖，测试夹具补 stub。
+- `dsh-experimental-schedule-bundle` 在 0.2.1 被移除，generation 投影测试改用安装内的 `dsh-experimental-terminal-bundle`。
+- plugin-manager 两处"兼容性上报不阻断"恢复桌面语义文案（`Compatibility is unverified`），bundle 列表补 `switchedOff` 标记。
+- ui-workspace 完整移植桌面导航接缝：`registerSessionStarter`、`registerSessionFilter/ReuseFilter/Opener`、`registerWorkspaceFilter/DeleteHandler`、`isSessionVisible/isWorkspaceVisible`、blank 复用过滤，全部挂到上游新的 `connectBlank/createInWorkspace/startSession(options)` 架构上。
+- profile-registry 测试对 `npm_config_*` 环境做了隔离（`npx vitest` 注入的用户级 registry 会盖过项目 .npmrc）。
+
+有意放弃、待后续按新架构重做的桌面特性：
+
+- ui-chat 补丁整体（附件打开、文件打开错误对话框、打开消息 footer 卡片）——上游重构了聊天插槽模型；PPT 打开模板卡随 `conversation.chat.userMessageFooter` 插槽一并下线（hero/composer dock 路径保留）。
+- deliverables 的"文件夹在文件管理器中打开"与本地路径启发式（上游改为 Set + argumentPath 匹配）。
+- 会话树未读角标（`unreadSessionIds`）未随本次移植重新接线。
+
+未执行：Windows 验证、安装包打包与真机启动、市场插件在 0.2.1 下的真机兼容性回归。

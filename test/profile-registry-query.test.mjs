@@ -40,10 +40,16 @@ printf 'https://example.invalid/from-npm\\n'
 }
 
 function queryRegistry(dir, marker, extraArgs = []) {
+  // Strip the launching npm's injected npm_config_* environment: npm env vars
+  // outrank a project .npmrc, so `npx vitest` on a machine with a user-level
+  // registry mirror would otherwise mask the project value under pnpm 10.
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => !key.startsWith('npm_config_'))
+  )
   return spawnSync(process.execPath, [pnpmEntry, 'config', 'get', 'registry', ...extraArgs], {
     cwd: dir,
     encoding: 'utf8',
-    env: { ...process.env, NPM_SPAWN_MARKER: marker }
+    env: { ...env, NPM_SPAWN_MARKER: marker }
   })
 }
 

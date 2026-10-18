@@ -1,13 +1,11 @@
 diff --git a/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js b/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js
-index 39401ea..3d7bdd4 100644
+index 39401ea..187c1e9 100644
 --- a/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js
 +++ b/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js
-@@ -334,6 +334,17 @@ function pluginCompatibilityWarning(issue) {
+@@ -334,6 +334,15 @@ function pluginCompatibilityWarning(issue) {
  	const key = `${issue.name}@${issue.version}`;
  	return `Plugin ${key} is incompatible with dsh ${issue.runtimeVersion}: requirements ${JSON.stringify(issue.requirements)}. Running it may cause crashes or data loss. Update the plugin or install a plugin version compatible with this dsh runtime. To accept this risk explicitly, grant the exact-version exemption for ${key} on dsh ${issue.runtimeVersion} with \`dsh plugin allow-version\` or the plugin manager, then retry the installation or restart dsh. Exact-version exemption: ${issue.exempted ? "active" : "not active"}.`;
  }
-+	return `Plugin ${issue.name}@${issue.version} declares Harness peerDependencies ${JSON.stringify(issue.peers)} that do not include dsh ${issue.runtimeVersion}. Compatibility is unverified; Desktop will attempt loading it and report actual import or activation failures.`;
-+}
 +// Desktop treats declared version ranges as advisory. Keep evaluation pure for
 +// diagnostics; report once per declaration/runtime per process, without writing
 +// exemptions or changing the installed plugin manifest.
@@ -20,7 +18,7 @@ index 39401ea..3d7bdd4 100644
  //#endregion
  //#region lib/types/profile-compatibility.js
  /** Profile-local compatibility permissions readable before any Cordis plugins load. */
-@@ -914,6 +925,17 @@ function readProfileManifest(binName, dir) {
+@@ -914,6 +923,17 @@ function readProfileManifest(binName, dir) {
  	if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error(`${binName}: profile manifest ${path} must hold a JSON object`);
  	return parsed;
  }
@@ -38,7 +36,7 @@ index 39401ea..3d7bdd4 100644
  /**
  * Write a profile's manifest back (2-space JSON, trailing newline).
  * @param dir - the profile directory.
-@@ -1012,31 +1034,49 @@ function resolveBundleDir(binName, packageName, installAnchor, profileDir) {
+@@ -1012,31 +1032,49 @@ function resolveBundleDir(binName, packageName, installAnchor, profileDir) {
  * @param options - `userLayer: false` skips reading `cordis.patch.yml`.
  * @returns the successfully loaded bundle layers and optional user patch layer.
  */
@@ -97,7 +95,7 @@ index 39401ea..3d7bdd4 100644
  	}
  	const patchPath = join(dir, PROFILE_PATCH_FILENAME);
  	const patches = options.userLayer !== false && existsSync(patchPath) ? loadOverlayPatches(binName, patchPath) : [];
-@@ -2325,7 +2365,8 @@ function preflight(ctx, entries, parentURL, report) {
+@@ -2325,7 +2363,8 @@ function preflight(ctx, entries, parentURL, report) {
  			const manifest = manifestOf(ctx, row.name, base);
  			if (manifest === void 0) return void 0;
  			const issue = evaluatePluginCompatibility(manifest, exemptions);
@@ -107,7 +105,7 @@ index 39401ea..3d7bdd4 100644
  		} catch (error) {
  			return `its declared dsh requirements cannot be validated: ${error instanceof Error ? error.message : String(error)}`;
  		}
-@@ -4305,7 +4346,10 @@ var StartupError = class extends Error {
+@@ -4305,7 +4344,10 @@ var StartupError = class extends Error {
  	* @param entries - inactive plugin metadata and original failure values.
  	*/
  	constructor(message, entries) {
@@ -119,7 +117,7 @@ index 39401ea..3d7bdd4 100644
  		super(message, failures.length > 0 ? { cause: new AggregateError(failures, "Plugin activation failures") } : void 0);
  		this.entries = entries;
  		Object.defineProperties(this, {
-@@ -4358,8 +4402,7 @@ async function inactiveEntries(ctx, importNow = true) {
+@@ -4358,8 +4400,7 @@ async function inactiveEntries(ctx, importNow = true) {
  				} : {
  					kind: "failed",
  					error,
@@ -129,7 +127,7 @@ index 39401ea..3d7bdd4 100644
  			});
  			continue;
  		}
-@@ -4463,13 +4506,22 @@ function startupDiagnostic(binName, failures, required) {
+@@ -4463,13 +4504,22 @@ function startupDiagnostic(binName, failures, required) {
  */
  async function auditStartupEntries(ctx, binName, warn = (line) => void process.stderr.write(line)) {
  	const failures = await inactiveEntries(ctx);
@@ -154,7 +152,7 @@ index 39401ea..3d7bdd4 100644
  	})));
  	if (failures.length > 0) warn(activationDiagnostic(binName, failures));
  }
-@@ -4541,7 +4593,11 @@ async function boot(binName, absoluteConfigPath, patches, prepare, bareModuleBas
+@@ -4541,7 +4591,11 @@ async function boot(binName, absoluteConfigPath, patches, prepare, bareModuleBas
  		await auditStartupEntries(ctx, binName);
  		return ctx;
  	} catch (cause) {
@@ -167,7 +165,7 @@ index 39401ea..3d7bdd4 100644
  		if (cause instanceof StartupError) {
  			cause.startup = {
  				configurationPath: absoluteConfigPath,
-@@ -4563,4 +4619,4 @@ async function boot(binName, absoluteConfigPath, patches, prepare, bareModuleBas
+@@ -4563,4 +4617,4 @@ async function boot(binName, absoluteConfigPath, patches, prepare, bareModuleBas
  	}
  }
  //#endregion

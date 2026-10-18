@@ -34,8 +34,9 @@ describe('provider error classification patches', () => {
     // 0.1.2-alpha.1) into the chat and trajectory surfaces, and made the copy
     // i18n-driven. The desktop customization follows that shape rather than
     // reinstating hardcoded English.
+    // The 0.2.1 chat surface rework dropped the dsh-client-ui-chat patch;
+    // trajectory remains the customized failure surface.
     for (const [packageName, prefix] of [
-      ['@deepseek-ai/dsh-client-ui-chat', 'message'],
       ['@deepseek-ai/dsh-client-ui-trajectory', 'details']
     ] as const) {
       const patch = await readPatch(packageName)

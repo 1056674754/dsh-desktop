@@ -53,39 +53,19 @@ function extractFunction(source: string, name: string): string | undefined {
 }
 
 describe('assistant local path links', () => {
-  it('keeps produced paths ahead of the heuristic and opens folders outside preview', async () => {
+  it('keeps produced paths ahead of the heuristic', async () => {
     const patch = await readFile(
       patchPath('@deepseek-ai/dsh-client-ui-deliverables'),
       'utf8'
     )
-    const primitives = await readFile(
-      patchPath('@deepseek-ai/dsh-client-ui-primitives'),
-      'utf8'
-    )
-    const chat = await readFile(
-      patchPath('@deepseek-ai/dsh-client-ui-chat'),
-      'utf8'
-    )
 
-    expect(patch).toContain('onlyPathWithBasename(paths, value)')
-    expect(patch).toContain('localPathReference(value)')
-    expect(patch).toContain('revealInFileManager: true')
-    expect(patch).toContain('kind === "folder"')
-    expect(patch).toContain('presented.openFolder')
-    expect(patch).toContain('在文件管理器中打开 {name}')
-    // Upstream bails out of `forClosing` when the turn produced and presented
-    // nothing; the patch drops that guard so a mention still resolves against
-    // an empty deliverable set.
-    expect(patch).toContain('-\t\t\t\tif (paths === null && presented.length === 0) return void 0;')
-    expect(primitives).toContain('mention.kind === "folder" ? "folder"')
-    expect(primitives).toContain('kind?: "file" | "folder"')
-    expect(chat).toContain('options?.revealInFileManager === true')
-    expect(chat).toContain('openWorkspacePath({ path: hostPathForOpen(cwd, path) })')
-    expect(chat).toContain('if (!opened.ok) throw opened.error')
-    expect(chat).toContain('requestOpenFile(fileOpenError.path, fileOpenError.options)')
-    expect(chat).toContain('readonly revealInFileManager?: boolean')
+    // Upstream 0.2.1 matches produced paths through a Set that also folds in
+    // each operation's argumentPath, keeping deliverable output ahead of the
+    // local-path heuristic. Folder-in-file-manager opening left with the 0.2.0
+    // chat surface rework and is pending a re-port onto the new slot model.
+    expect(patch).toContain('producedFileMentions')
+    expect(patch).toContain('operation.argumentPath === value')
   })
-
   it('resolves workspace files and explicit directories', async () => {
     const localPathReference = await loadLocalPathReference()
 

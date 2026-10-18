@@ -1,5 +1,5 @@
 diff --git a/node_modules/@deepseek-ai/dsh-client-ui-workspace/lib/client.js b/node_modules/@deepseek-ai/dsh-client-ui-workspace/lib/client.js
-index 5cca45b..158751d 100644
+index 5cca45b..547d25f 100644
 --- a/node_modules/@deepseek-ai/dsh-client-ui-workspace/lib/client.js
 +++ b/node_modules/@deepseek-ai/dsh-client-ui-workspace/lib/client.js
 @@ -1096,6 +1096,7 @@ window.__ModuleLoader__.load({
@@ -46,7 +46,46 @@ index 5cca45b..158751d 100644
  			/**
  			* @param ctx - Client root Context.
  			* @param directoryPicker - the directory-picking Remote namespace.
-@@ -1467,7 +1486,82 @@ window.__ModuleLoader__.load({
+@@ -1400,8 +1419,7 @@ window.__ModuleLoader__.load({
+ 			/**
+ 			* @param reuse - preset for the reused or created blank; absent creates a fresh Session.
+ 			*/
+-			async connectBlank(workspaceId, reuse) {
+-				const workspace = this.workspaces.list.getSnapshot().items.find((item) => item.workspaceId === workspaceId);
++			async connectBlank(workspaceId, reuse) {				const workspace = this.workspaces.list.getSnapshot().items.find((item) => item.workspaceId === workspaceId);
+ 				if (workspace === void 0) throw new Error(`uiWorkspace.connectWorkspace: unknown workspace ${workspaceId}`);
+ 				if (reuse === void 0) return this.sessions.create({ workspaceId });
+ 				const inflight = this.connecting.get(workspaceId);
+@@ -1411,8 +1429,7 @@ window.__ModuleLoader__.load({
+ 				});
+ 				this.connecting.set(workspaceId, {
+ 					agentPreset: reuse.agentPreset,
+-					attempt
+-				});
++					attempt				});
+ 				return attempt;
+ 			}
+ 			createInWorkspace(workspace, options) {
+@@ -1420,7 +1437,7 @@ window.__ModuleLoader__.load({
+ 				const sessions = this.sessions.list.getSnapshot();
+ 				const blank = sessions.ids.find((id) => {
+ 					const summary = sessions.byId[id];
+-					return summary !== void 0 && summary.blank && summary.cwd === workspace.path && workspace.sessionIds.includes(id) && !archived.includes(id);
++					return summary !== void 0 && this.isSessionVisible(id) && summary.blank && summary.cwd === workspace.path && workspace.sessionIds.includes(id) && !archived.includes(id) && this.sessionReuseFilter?.(id) !== false;
+ 				});
+ 				return this.createNamed({
+ 					workspaceId: workspace.workspaceId,
+@@ -1439,8 +1456,7 @@ window.__ModuleLoader__.load({
+ 				if (named !== void 0 && named !== sessionId) this.sessions.refreshProjections(named).catch((reason) => {
+ 					console.warn("declined blank Session projection reload failed:", reason);
+ 				});
+-				return sessionId;
+-			}
++				return sessionId;			}
+ 			/**
+ 			* Reopen a saved blank Session under the preset its log recorded, or under
+ 			* the Host default once that preset no longer activates. Listed values are
+@@ -1467,18 +1483,92 @@ window.__ModuleLoader__.load({
  					return this.createNamed(request);
  				}
  			}
@@ -130,15 +169,21 @@ index 5cca45b..158751d 100644
  				this.replaceMain(target, this.lifetime.signal, "reveal");
  			}
  			openWorkspace(workspaceId, beforeOpen, options = {}) {
-@@ -1475,6 +1569,7 @@ window.__ModuleLoader__.load({
+ 				return this.openWorkspaceSession(workspaceId, beforeOpen, options);
  			}
- 			async openWorkspaceSession(workspaceId, beforeOpen, reuse) {
- 				const navigation = AbortSignal.any([this.ctx.layout.beginNavigation(), this.lifetime.signal]);
+-			async openWorkspaceSession(workspaceId, beforeOpen, reuse) {
+-				const navigation = AbortSignal.any([this.ctx.layout.beginNavigation(), this.lifetime.signal]);
++			async openWorkspaceSession(workspaceId, beforeOpen, reuse) {				const navigation = AbortSignal.any([this.ctx.layout.beginNavigation(), this.lifetime.signal]);
 +				const knownSessions = new Set(this.sessions.list.getSnapshot().ids);
  				let sessionId;
  				try {
- 					sessionId = await this.connectBlank(workspaceId, reuse);
-@@ -1486,6 +1581,8 @@ window.__ModuleLoader__.load({
+-					sessionId = await this.connectBlank(workspaceId, reuse);
+-				} catch (error) {
++					sessionId = await this.connectBlank(workspaceId, reuse);				} catch (error) {
+ 					if (!navigation.aborted) this.notify({
+ 						kind: "createFailed",
+ 						message: creationFailureMessage(error)
+@@ -1486,6 +1576,8 @@ window.__ModuleLoader__.load({
  					throw error;
  				}
  				if (navigation.aborted) return;
@@ -147,7 +192,41 @@ index 5cca45b..158751d 100644
  				this.replaceMain(sessionId, navigation, "reveal", beforeOpen);
  			}
  			async forkSession(sessionId, onCreated, options) {
-@@ -1545,6 +1642,24 @@ window.__ModuleLoader__.load({
+@@ -1496,11 +1588,21 @@ window.__ModuleLoader__.load({
+ 					...options?.allowMigration === void 0 ? {} : { allowMigration: options.allowMigration }
+ 				});
+ 			}
++			registerSessionStarter(handler) {
++				if (this.sessionStarter !== null) throw new Error("uiWorkspace session starter already registered");
++				this.sessionStarter = handler;
++				let active = true;
++				return () => {
++					if (!active) return;
++					active = false;
++					if (this.sessionStarter === handler) this.sessionStarter = null;
++				};
++			}
+ 			startSession(workspaceId, options) {
++				if (this.sessionStarter?.(workspaceId) === true) return;
+ 				const { agentPreset, ...draft } = options ?? {};
+ 				const draftOptions = options === void 0 ? void 0 : draft;
+-				const initializeDraft = draftOptions !== void 0 && (draftOptions.prompt !== void 0 || draftOptions.clearPreviousDraft === true);
+-				const workspace = this.workspaces.list.getSnapshot();
++				const initializeDraft = draftOptions !== void 0 && (draftOptions.prompt !== void 0 || draftOptions.clearPreviousDraft === true);				const workspace = this.workspaces.list.getSnapshot();
+ 				const sessions = this.sessions.list.getSnapshot();
+ 				const current = this.mainReference?.sessionId;
+ 				const currentWorkspaceId = current === void 0 ? void 0 : workspace.items.find((item) => item.sessionIds.includes(current))?.workspaceId;
+@@ -1521,8 +1623,7 @@ window.__ModuleLoader__.load({
+ 					const binding = this.sessions.binding(id);
+ 					if (binding === void 0) this.draftPreparationFailed();
+ 					this.prepareDraft(binding, draftOptions);
+-				} : void 0, agentPreset === void 0 ? {} : { agentPreset })).catch((reason) => {
+-					console.warn("new session failed:", reason);
++				} : void 0, agentPreset === void 0 ? {} : { agentPreset })).catch((reason) => {					console.warn("new session failed:", reason);
+ 				});
+ 			}
+ 			prepareDraft(binding, options) {
+@@ -1545,6 +1646,24 @@ window.__ModuleLoader__.load({
  			async unarchiveSession(sessionId) {
  				await this.workspaces.unarchiveSession(sessionId);
  			}
@@ -172,7 +251,7 @@ index 5cca45b..158751d 100644
  			async pinSession(sessionId) {
  				await this.workspaces.pinSession(sessionId);
  				const { items, pinnedSessionIds, archivedSessionIds } = this.workspaces.list.getSnapshot();
-@@ -2175,7 +2290,7 @@ window.__ModuleLoader__.load({
+@@ -2175,7 +2294,7 @@ window.__ModuleLoader__.load({
  		* @param props.t - Workspace-browser translation seat.
  		* @returns the result row.
  		*/
@@ -181,7 +260,7 @@ index 5cca45b..158751d 100644
  			const selected = result.id === currentId;
  			const statuses = sessionStatuses(result, t);
  			const primaryStatus = statuses[0];
-@@ -2190,6 +2305,7 @@ window.__ModuleLoader__.load({
+@@ -2190,6 +2309,7 @@ window.__ModuleLoader__.load({
  				children: [(0, react_jsx_runtime.jsxs)("span", {
  					className: Rows_module_css_default.searchResultHeading,
  					children: [
@@ -189,7 +268,7 @@ index 5cca45b..158751d 100644
  						(0, react_jsx_runtime.jsx)("span", {
  							className: Rows_module_css_default.slot,
  							children: !result.archived && primaryStatus.state !== "idle" && (0, react_jsx_runtime.jsx)(SessionStatusDots, { statuses })
-@@ -2251,7 +2367,7 @@ window.__ModuleLoader__.load({
+@@ -2251,7 +2371,7 @@ window.__ModuleLoader__.load({
  		* @param props.t - the browser root's locale seat.
  		* @returns the session row.
  		*/
@@ -198,7 +277,7 @@ index 5cca45b..158751d 100644
  			const row = node;
  			const title = displayTitle(node, t);
  			const selected = node.id === currentId;
-@@ -2280,6 +2396,11 @@ window.__ModuleLoader__.load({
+@@ -2280,6 +2400,11 @@ window.__ModuleLoader__.load({
  					onClick: () => {
  						onOpen(node.id);
  					},
@@ -210,7 +289,7 @@ index 5cca45b..158751d 100644
  					onPointerEnter: marquee.enter,
  					onPointerLeave: marquee.leave,
  					draggable,
-@@ -2303,11 +2424,12 @@ window.__ModuleLoader__.load({
+@@ -2303,11 +2428,12 @@ window.__ModuleLoader__.load({
  					children: [
  						(0, react_jsx_runtime.jsx)("span", {
  							className: Rows_module_css_default.slot,
@@ -224,7 +303,7 @@ index 5cca45b..158751d 100644
  							onDoubleClick: row.blank ? void 0 : (e) => {
  								e.stopPropagation();
  								onRenameRequest(node.id, row.title);
-@@ -2343,7 +2465,9 @@ window.__ModuleLoader__.load({
+@@ -2343,7 +2469,9 @@ window.__ModuleLoader__.load({
  								}),
  								children: renderSlot("sidebar.workspaces.session.menu.item", {
  									sessionId: node.id,
@@ -235,7 +314,19 @@ index 5cca45b..158751d 100644
  								}, { hookContext: menuOpenState })
  							}), renderSlot("sidebar.workspaces.session.row.action", {
  								sessionId: node.id,
-@@ -3299,6 +3423,8 @@ window.__ModuleLoader__.load({
+@@ -3020,9 +3148,8 @@ window.__ModuleLoader__.load({
+ 				]
+ 			});
+ 		}
+-		/** The scrolling session tree; unmounting drops the sessions subscription and the session watermarks. */
+-		function SessionTree({ list, useSessionStatus, startSession, open, workspaces, ungroupedSessionIds, rowState, onLeaveArchivedOnly, workspaceReady, animationResetKey, usePanelInfo, onRenameRequest, onDeleteRequest, onSessionRenameRequest, renderSlot, insertWorkspaceBefore, nestWorkspaces, groupExpansion, setGroupExpanded, setSessionOrder, home, t, revealSessionId, onSessionRevealed, shortcuts }) {
+-			const panelActive = usePanelInfo((info) => info.activePanelId !== null);
++		/** The scrolling session tree; unmounting drops the sessions subscription and local row limits. */
++		function SessionTree({ list, useSessionStatus, startSession, open, workspaces, ungroupedSessionIds, rowState, unreadSessionIds, onUnreadChange, onLeaveArchivedOnly, workspaceReady, animationResetKey, usePanelInfo, onRenameRequest, onDeleteRequest, onSessionRenameRequest, renderSlot, insertWorkspaceBefore, nestWorkspaces, groupExpansion, setGroupExpanded, setSessionOrder, home, t, revealSessionId, onSessionRevealed, shortcuts }) {			const panelActive = usePanelInfo((info) => info.activePanelId !== null);
+ 			const statuses = useSessionStatus((s) => s);
+ 			const current = panelActive ? void 0 : Object.values(list.byId).find((session) => (session.retainedBy.mainView ?? 0) > 0)?.id;
+ 			const revealGroup = revealSessionId === void 0 || !workspaceReady ? void 0 : owningGroupKey(workspaces, revealSessionId);
+@@ -3299,6 +3426,8 @@ window.__ModuleLoader__.load({
  								onOpen: open,
  								onRenameRequest: onSessionRenameRequest,
  								renderSlot,
@@ -244,7 +335,7 @@ index 5cca45b..158751d 100644
  								onReveal: node.id === revealSessionId && group.key === revealGroup ? () => {
  									onSessionRevealed(node.id);
  								} : void 0,
-@@ -3352,7 +3478,7 @@ window.__ModuleLoader__.load({
+@@ -3352,7 +3481,7 @@ window.__ModuleLoader__.load({
  			});
  		}
  		/** The flat "In one list" body: every session is one draggable top-level row. */
@@ -253,7 +344,7 @@ index 5cca45b..158751d 100644
  			const panelActive = usePanelInfo((info) => info.activePanelId !== null);
  			const statuses = useSessionStatus((s) => s);
  			const rows = (0, react.useMemo)(() => deriveFlat(list, sessionIds, rowState, statuses), [
-@@ -3393,8 +3519,10 @@ window.__ModuleLoader__.load({
+@@ -3393,8 +3522,10 @@ window.__ModuleLoader__.load({
  							currentId,
  							now,
  							onOpen: open,
@@ -266,7 +357,7 @@ index 5cca45b..158751d 100644
  							onReveal: node.id === revealSessionId ? () => {
  								onSessionRevealed(node.id);
  							} : void 0,
-@@ -3438,9 +3566,8 @@ window.__ModuleLoader__.load({
+@@ -3438,9 +3569,8 @@ window.__ModuleLoader__.load({
  			});
  		}
  		/** Flat search body: local metadata matches plus the current Host result page. */
@@ -277,7 +368,7 @@ index 5cca45b..158751d 100644
  			const statuses = useSessionStatus((s) => s);
  			const currentRemote = remote.query === query ? remote : {
  				query,
-@@ -3474,6 +3601,7 @@ window.__ModuleLoader__.load({
+@@ -3474,6 +3604,7 @@ window.__ModuleLoader__.load({
  								currentId,
  								onOpen: open,
  								onUnarchive,
@@ -285,7 +376,14 @@ index 5cca45b..158751d 100644
  								t
  							}, result.id))
  						}),
-@@ -3512,13 +3640,21 @@ window.__ModuleLoader__.load({
+@@ -3506,19 +3637,26 @@ window.__ModuleLoader__.load({
+ 		* @param props - composed slot props (shell owner share + store + injected actions).
+ 		* @returns the region element tree.
+ 		*/
+-		function WorkspaceBrowser({ wide, usePanelInfo, expandSidebar, useSessions, useSessionStatus, useWorkspaces, useStore, actions, startSession, open, requestSessionRename, notifyArchivedNotOpenable, renameWorkspace, deleteWorkspace, insertWorkspaceBefore, unarchiveSession, createWorkspace, searchSessions, searchResultLimit, useDirectoryFlow, useHostInfo, useShortcuts, useWorkspaceShortcuts, requestSearch, requestAddWorkspace, closeAddWorkspace, setDirectoryBusy, renderSlot, t }) {
+-			const home = useHostInfo((info) => info.home);
++		function WorkspaceBrowser({ wide, usePanelInfo, expandSidebar, useSessions, useSessionStatus, useWorkspaces, useStore, actions, startSession, open, requestSessionRename, notifyArchivedNotOpenable, renameWorkspace, deleteWorkspace, insertWorkspaceBefore, unarchiveSession, createWorkspace, searchSessions, searchResultLimit, isSessionVisible, isWorkspaceVisible, useDirectoryFlow, useHostInfo, useSessionVisibility, useWorkspaceVisibility, useShortcuts, useWorkspaceShortcuts, requestSearch, requestAddWorkspace, closeAddWorkspace, setDirectoryBusy, dismissForkError, renderSlot, t }) {			const home = useHostInfo((info) => info.home);
+ 			const shortcuts = useShortcuts((rows) => rows);
  			const searchShortcut = shortcuts.find((row) => row.id === "session.search");
  			const addShortcut = shortcuts.find((row) => row.id === "workspace.add");
  			const shortcutState = useWorkspaceShortcuts((state) => state);
@@ -310,7 +408,7 @@ index 5cca45b..158751d 100644
  			const workspacePhase = useWorkspaces((state) => state.phase);
  			const workspaceStreamState = useWorkspaces((state) => state.state);
  			const archivedSessionIds = useWorkspaces((state) => state.archivedSessionIds);
-@@ -3529,6 +3665,11 @@ window.__ModuleLoader__.load({
+@@ -3529,6 +3667,11 @@ window.__ModuleLoader__.load({
  			const archivedFilter = useStore((s) => s.archivedFilter ?? "default");
  			const groupExpansion = useStore((s) => s.groupExpansion);
  			const sessionOrderByAccount = useStore((s) => s.sessionOrderByAccount);
@@ -322,7 +420,7 @@ index 5cca45b..158751d 100644
  			const guardedOpen = (sessionId) => {
  				if (archivedSessionIds.includes(sessionId)) {
  					notifyArchivedNotOpenable();
-@@ -3798,6 +3939,11 @@ window.__ModuleLoader__.load({
+@@ -3798,6 +3941,11 @@ window.__ModuleLoader__.load({
  			const [deleting, setDeleting] = (0, react.useState)(false);
  			const [deleteCommittedId, setDeleteCommittedId] = (0, react.useState)(null);
  			const [deleteError, setDeleteError] = (0, react.useState)(null);
@@ -334,7 +432,7 @@ index 5cca45b..158751d 100644
  			(0, react.useEffect)(() => {
  				if (deleteCommittedId === null || workspaces.some((workspace) => workspace.workspaceId === deleteCommittedId)) return;
  				setDeleting(false);
-@@ -3812,6 +3958,10 @@ window.__ModuleLoader__.load({
+@@ -3812,6 +3960,10 @@ window.__ModuleLoader__.load({
  			const confirmDelete = () => {
  				/* v8 ignore next -- the Modal is absent without a target and its button is disabled while deleting. */
  				if (deleting || deleteTarget === null) return;
@@ -345,7 +443,7 @@ index 5cca45b..158751d 100644
  				setDeleting(true);
  				setDeleteCommittedId(null);
  				setDeleteError(null);
-@@ -3964,7 +4114,7 @@ window.__ModuleLoader__.load({
+@@ -3964,7 +4116,7 @@ window.__ModuleLoader__.load({
  						className: WorkspaceBrowser_module_css_default.listArea,
  						children: wide && (normalizedQuery !== "" ? (0, react_jsx_runtime.jsx)(SearchResults, {
  							usePanelInfo,
@@ -354,7 +452,7 @@ index 5cca45b..158751d 100644
  							useSessionStatus,
  							open: openSearchResult,
  							onUnarchive: onSessionUnarchive,
-@@ -3980,6 +4130,8 @@ window.__ModuleLoader__.load({
+@@ -3980,6 +4132,8 @@ window.__ModuleLoader__.load({
  							list,
  							sessionIds: orderedFlatSessionIds,
  							rowState,
@@ -363,7 +461,7 @@ index 5cca45b..158751d 100644
  							onLeaveArchivedOnly: leaveArchivedOnly,
  							workspaceReady,
  							animationResetKey: `${groupBy}/${orderBy}/${archivedFilter}`,
-@@ -4007,6 +4159,8 @@ window.__ModuleLoader__.load({
+@@ -4007,6 +4161,8 @@ window.__ModuleLoader__.load({
  							setGroupExpanded: actions.setGroupExpanded,
  							setSessionOrder: saveSessionOrder,
  							rowState,
@@ -372,7 +470,7 @@ index 5cca45b..158751d 100644
  							onLeaveArchivedOnly: leaveArchivedOnly,
  							startSession,
  							open: guardedOpen,
-@@ -4026,7 +4180,8 @@ window.__ModuleLoader__.load({
+@@ -4026,7 +4182,8 @@ window.__ModuleLoader__.load({
  							onDeleteRequest: (workspaceId, title) => {
  								setDeleteTarget({
  									workspaceId,
@@ -382,7 +480,7 @@ index 5cca45b..158751d 100644
  								});
  								setDeleteError(null);
  							}
-@@ -4856,6 +5011,7 @@ window.__ModuleLoader__.load({
+@@ -4856,6 +5013,7 @@ window.__ModuleLoader__.load({
  			"status.compact.planReview": "计划待审",
  			"status.compact.answer": "待回答",
  			"status.completed": "已完成",
@@ -390,7 +488,7 @@ index 5cca45b..158751d 100644
  			"hover.created": "创建于 {time}",
  			"hover.copied": "已复制",
  			"date.ymd": "{y}年{m}月{d}日",
-@@ -4978,6 +5134,7 @@ window.__ModuleLoader__.load({
+@@ -4978,6 +5136,7 @@ window.__ModuleLoader__.load({
  			"status.compact.planReview": "Plan review",
  			"status.compact.answer": "Answer",
  			"status.completed": "Completed",
@@ -398,7 +496,16 @@ index 5cca45b..158751d 100644
  			"hover.created": "Created {time}",
  			"hover.copied": "Copied",
  			"date.ymd": "{y}-{m}-{d}",
-@@ -5193,7 +5350,7 @@ window.__ModuleLoader__.load({
+@@ -5179,6 +5338,8 @@ window.__ModuleLoader__.load({
+ 				}
+ 			});
+ 			const browserInjected = () => ({
++				isSessionVisible: (sessionId) => uiWorkspace.isSessionVisible(sessionId),
++				isWorkspaceVisible: (workspaceId) => uiWorkspace.isWorkspaceVisible(workspaceId),
+ 				startSession: (workspaceId, options) => {
+ 					uiWorkspace.startSession(workspaceId, options);
+ 				},
+@@ -5193,7 +5354,7 @@ window.__ModuleLoader__.load({
  					await workspaces.rename(workspaceId, title);
  				},
  				deleteWorkspace: async (workspaceId) => {
@@ -407,7 +514,7 @@ index 5cca45b..158751d 100644
  				},
  				insertWorkspaceBefore: async (workspaceId, beforeWorkspaceId) => {
  					await workspaces.insertBefore(workspaceId, beforeWorkspaceId);
-@@ -5209,6 +5366,8 @@ window.__ModuleLoader__.load({
+@@ -5209,6 +5370,8 @@ window.__ModuleLoader__.load({
  				hooks: {
  					directoryFlow: browserFlowSource,
  					hostInfo,

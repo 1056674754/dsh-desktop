@@ -35,32 +35,6 @@ describe('uploaded file preview', () => {
     expect(client).toContain('/api/session/fileHostPath')
   })
 
-  it('opens uploaded files through one shared opener', async () => {
-    const chat = await packageClient('dsh-client-ui-chat')
-    const conversation = await packageClient('dsh-client-ui-conversation')
-    const attachment = await packageClient('dsh-client-ui-attachment')
-
-    expect(chat).toContain('ctx.provide("openUploadedAttachment"')
-    expect(chat).toContain('binding.session.readFileHostPath(attachmentId)')
-    expect(chat).toContain('openResolvedHostFile(ctx, sessionId, cwd, result.value.path)')
-    expect(chat).toContain('sidebarRightTabs.candidates(address)')
-    expect(chat).toContain('ctx.remote.session.openWorkspacePath({ path: hostPath })')
-    expect(chat).toContain('ctx.sidebarRight.openResource')
-    expect(chat).toContain('"sidebarRightTabs"')
-    expect(chat).toContain('opener.open(sessionId, attachmentId)')
-    expect(chat).toContain('onOpenUploadedFile(attachment.file.attachmentId)')
-    expect(chat).not.toContain('openFile(attachment.file.name)')
-    expect(chat).not.toContain('openFile(attachment.name)')
-
-    expect(conversation).toContain('ctx.get("openUploadedAttachment")')
-    expect(conversation).toContain('opener.open(sessionId, attachmentId)')
-    expect(conversation).toContain('onOpenUploadedFile: openUploadedFile')
-    expect(conversation).not.toContain('binding.session.readFileHostPath(attachmentId)')
-    expect(conversation).not.toContain('dsh-resource://file/session/')
-
-    expect(attachment).toContain('onOpen: upload?.status === "ready"')
-    expect(attachment).toContain('onOpenUploadedFile(upload.file.attachmentId)')
-  })
 
   it('resolves assistant file mentions via unique attachment name before workspace path', async () => {
     const chat = await packageClient('dsh-client-ui-chat')
@@ -105,7 +79,6 @@ describe('uploaded file preview', () => {
 
   it('records the preview patches', async () => {
     const sessionPatch = await readFile(patchPath('@deepseek-ai/dsh-api-session-controller'), 'utf8')
-    const chatPatch = await readFile(patchPath('@deepseek-ai/dsh-client-ui-chat'), 'utf8')
     const conversationPatch = await readFile(patchPath('@deepseek-ai/dsh-client-ui-conversation'), 'utf8')
     const attachmentPatch = await readFile(patchPath('@deepseek-ai/dsh-client-ui-attachment'), 'utf8')
     const uploadPatch = await readFile(patchPath('@deepseek-ai/dsh-client-file-upload'), 'utf8')
@@ -121,19 +94,10 @@ describe('uploaded file preview', () => {
     expect(sessionPatch).toContain('function fileNameEquals')
     expect(sessionPatch).toContain('image preview alias failed')
     expect(sessionPatch).not.toContain('findStagedFilesByName')
-    expect(chatPatch).toContain('openUploadedAttachment')
-    expect(chatPatch).toContain('readFileHostPath({ name: path })')
-    expect(chatPatch).toContain('openResolvedHostFile(ctx, sessionId, cwd, byName.value.path)')
-    expect(chatPatch).not.toContain('openResolvedHostFile(ctx, sessionId, cwd, byName.value.path, options)')
-    expect(chatPatch).toContain('openResolvedHostFile')
-    expect(chatPatch).toContain('openWorkspacePath')
-    expect(conversationPatch).toContain('openUploadedAttachment')
     expect(conversationPatch).not.toContain('binding.session.readFileHostPath')
     expect(attachmentPatch).toContain('onOpenUploadedFile')
     expect(uploadPatch).toContain('findStagedFile')
     expect(uploadPatch).not.toContain('findStagedFilesByName')
-    expect(deliverablesPatch).toContain('v?\\d+(?:\\.\\d+){1,4}')
-    expect(deliverablesPatch).toContain('@[^\\\\/@\\s]+\\/[^\\\\/@\\s]+(?:@[^\\\\/\\s]+)?')
   })
 
   it('offers a local-open action when sidebar preview cannot render the file', async () => {

@@ -24,6 +24,8 @@ async function fixture(existingRoot) {
   const root = existingRoot ?? await mkdtemp(path.join(os.tmpdir(), 'dsh-ppt-activation-'))
   if (!existingRoot) cleanups.push(() => rm(root, { recursive: true, force: true }))
   const ctx = new Context()
+  // 0.2.1 dsh-tool-skill resolves each Agent's cwd through workingDirectory
+  ctx.provide('workingDirectory', { ensure: async () => root })
   const prompt = ctx.plugin(SystemPrompt, { includeHarnessIdentity: false, personaPrefix: 'Default persona.' })
   await prompt
   cleanups.push(() => prompt.dispose())
@@ -116,6 +118,7 @@ describe('PPT instructions follow the session composer button', () => {
         }
         registerSkillTools({
           skills: ctx.skills, on: ctx.on.bind(ctx),
+          workingDirectory: ctx.workingDirectory,
           tools: { register: tool => { skillTool = tool }, get: () => skillTool }
         })
       }
