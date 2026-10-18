@@ -4,6 +4,7 @@ import vm from 'node:vm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type { TypertCodec } from '@deepseek-ai/dsh-typert-protocol'
 import { Context } from '@deepseek-ai/cordis'
+import * as zod from 'zod'
 import * as gateway from '../node_modules/@deepseek-ai/dsh-api-gateway/lib/types/client/index.js'
 import * as registry from '../node_modules/@deepseek-ai/dsh-typert-registry/lib/types/client/index.js'
 import sessionRemote from '@deepseek-ai/dsh-api-session-controller/remote'
@@ -16,7 +17,11 @@ async function browserRemotes() {
   let plugin!: { apply(ctx: unknown): Promise<() => Promise<void>> }
   vm.runInNewContext(source, {
     window: { __ModuleLoader__: { load(definition: { factory(require: unknown): typeof plugin }) {
-      plugin = definition.factory((id: string) => { throw new Error(`Unexpected dependency: ${id}`) })
+      plugin = definition.factory((id: string) => {
+        // zod is the browser bundle's only plain dependency; 0.2.1 inlines it via require.
+        if (id === 'zod') return zod
+        throw new Error(`Unexpected dependency: ${id}`)
+      })
     } } }
   })
   return plugin

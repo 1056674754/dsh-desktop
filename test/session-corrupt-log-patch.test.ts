@@ -3,8 +3,9 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { zstdCompressSync } from 'node:zlib'
 import { Context } from '@deepseek-ai/cordis'
+import type { SessionPersistence } from '@deepseek-ai/dsh-session-persistence'
 import SessionStore, { SESSION_FORMAT_VERSION, SessionId, SessionSeq } from '@deepseek-ai/dsh-session'
-import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
+import { apply as applyJsonlPersistence, name as jsonlPersistenceName } from '@deepseek-ai/dsh-session-persistence-jsonl'
 import { describe, expect, it, vi } from 'vitest'
 
 async function findLog(root: string, id: string): Promise<string> {
@@ -24,7 +25,7 @@ describe('corrupt JSONL session log patch', () => {
     const root = await mkdtemp(path.join(tmpdir(), 'dsh-desktop-session-corrupt-'))
     const ctx = new Context()
     await ctx.plugin(SessionStore)
-    const fiber = await ctx.plugin(JsonlSessionPersistence, { root, compression: 'zstd' })
+    const fiber = await ctx.plugin({ name: jsonlPersistenceName, apply: applyJsonlPersistence }, { root, compression: 'zstd' })
     const persistence = ctx.sessionPersistence
     const warn = vi.spyOn(ctx.logger, 'warn')
     const corrupt = SessionId('desktop-corrupt-broken')
@@ -50,7 +51,7 @@ describe('corrupt JSONL session log patch', () => {
       await writeFile(brokenPath, bytes)
       const reopened = new Context()
       await reopened.plugin(SessionStore)
-      const reader = await reopened.plugin(JsonlSessionPersistence, { root, compression: 'zstd' })
+      const reader = await reopened.plugin({ name: jsonlPersistenceName, apply: applyJsonlPersistence }, { root, compression: 'zstd' })
       const reopenedWarn = vi.spyOn(reopened.logger, 'warn')
       try {
         const ids = (await reopened.sessionPersistence.list()).map((snapshot) => snapshot.header.id)

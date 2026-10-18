@@ -1,8 +1,8 @@
 diff --git a/node_modules/@deepseek-ai/dsh-client-ui-agent-preset/lib/client.js b/node_modules/@deepseek-ai/dsh-client-ui-agent-preset/lib/client.js
-index 242d8f4..6bc84c5 100644
+index af47dcc..3e35988 100644
 --- a/node_modules/@deepseek-ai/dsh-client-ui-agent-preset/lib/client.js
 +++ b/node_modules/@deepseek-ai/dsh-client-ui-agent-preset/lib/client.js
-@@ -271,6 +271,7 @@ window.__ModuleLoader__.load({
+@@ -905,6 +905,7 @@ window.__ModuleLoader__.load({
  		/** Locale bundles for the agent-preset hero chip, header label, and management section. */
  		/** English copy. */
  		const en = {
@@ -10,7 +10,7 @@ index 242d8f4..6bc84c5 100644
  			...guideEn,
  			builtInGroup: "Built-in",
  			customGroup: "Custom",
-@@ -297,6 +298,7 @@ window.__ModuleLoader__.load({
+@@ -937,6 +938,7 @@ window.__ModuleLoader__.load({
  		};
  		/** Simplified Chinese copy. */
  		const zh = {
@@ -18,10 +18,11 @@ index 242d8f4..6bc84c5 100644
  			...guideZh,
  			builtInGroup: "内置",
  			customGroup: "自定义",
-@@ -848,6 +850,85 @@ window.__ModuleLoader__.load({
- 		*/
- 		function AgentPresetSection({ useAgentPresetSection, load, view, closeView, makeDefault, startCreatorDraft, close: closeSettings, t }) {
+@@ -1689,7 +1691,85 @@ window.__ModuleLoader__.load({
+ 		function AgentPresetSection({ useAgentPresetSection, load, view, closeView, makeDefault, startCreatorDraft, close: closeSettings, useDeveloperTools, t }) {
  			const state = useAgentPresetSection((value) => value);
+ 			const developerTools = useDeveloperTools((enabled) => enabled);
+-			const [guide, setGuide] = (0, react.useState)(null);
 +			const chinese = document.documentElement.lang?.toLowerCase().startsWith("zh");
 +			const copy = chinese ? {
 +				import: "导入", export: "导出预设", search: "搜索预设", awesome: "Awesome preset",
@@ -100,11 +101,11 @@ index 242d8f4..6bc84c5 100644
 +				} catch (error) {
 +					setTransferError(error instanceof Error ? error.message : String(error));
 +				}
-+			};
- 			const [guide, setGuide] = (0, react.useState)(null);
++			};			const [guide, setGuide] = (0, react.useState)(null);
  			const viewTrigger = (0, react.useRef)(null);
  			const closeViewOnUnmount = (0, react.useRef)(closeView);
-@@ -881,21 +962,53 @@ window.__ModuleLoader__.load({
+ 			(0, react.useEffect)(() => {
+@@ -1722,22 +1802,53 @@ window.__ModuleLoader__.load({
  			return (0, react_jsx_runtime.jsxs)("section", {
  				className: AgentPresetSection_module_css_default.section,
  				children: [
@@ -157,13 +158,14 @@ index 242d8f4..6bc84c5 100644
  						children: state.error
  					}),
  					[true, false].map((builtIn) => {
--						const rows = state.rows.filter((row) => isBuiltInPreset(row) === builtIn);
-+						const query = search.trim().toLowerCase();
-+						const rows = state.rows.filter((row) => isBuiltInPreset(row) === builtIn && (query === "" || `${row.id} ${presetDisplayText(row, t).name} ${presetDisplayText(row, t).description ?? ""}`.toLowerCase().includes(query)));
- 						const entry = builtIn ? null : creatorButton;
+-						const rows = state.rows.filter((row) => isBuiltInPreset(row) === builtIn && (developerTools || !requiresCodingTools(row)));
+-						const entry = builtIn ? null : creatorButton;
++const query = search.trim().toLowerCase();
++						const rows = state.rows.filter((row) => isBuiltInPreset(row) === builtIn && (query === "" || `${row.id} ${presetDisplayText(row, t).name} ${presetDisplayText(row, t).description ?? ""}`.toLowerCase().includes(query)) && (developerTools || !requiresCodingTools(row)));						const entry = builtIn ? null : creatorButton;
  						if (rows.length === 0 && entry === null) return null;
  						return (0, react_jsx_runtime.jsxs)("section", {
-@@ -1003,7 +1116,13 @@ window.__ModuleLoader__.load({
+ 							className: AgentPresetSection_module_css_default.group,
+@@ -1844,7 +1955,13 @@ window.__ModuleLoader__.load({
  														view(row.id);
  													},
  													children: (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconBrowseOutlineRegular, {})
@@ -178,7 +180,7 @@ index 242d8f4..6bc84c5 100644
  											})]
  										}, row.id);
  									})
-@@ -1020,6 +1139,34 @@ window.__ModuleLoader__.load({
+@@ -1861,6 +1978,34 @@ window.__ModuleLoader__.load({
  							setGuide(null);
  						}
  					}),

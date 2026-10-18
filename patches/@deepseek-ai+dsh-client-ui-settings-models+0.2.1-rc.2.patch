@@ -1,5 +1,5 @@
 diff --git a/node_modules/@deepseek-ai/dsh-client-ui-settings-models/lib/client.js b/node_modules/@deepseek-ai/dsh-client-ui-settings-models/lib/client.js
-index c5252c1..efd12ce 100644
+index 2ca65cc..1a9ff52 100644
 --- a/node_modules/@deepseek-ai/dsh-client-ui-settings-models/lib/client.js
 +++ b/node_modules/@deepseek-ai/dsh-client-ui-settings-models/lib/client.js
 @@ -64,6 +64,38 @@ window.__ModuleLoader__.load({
@@ -39,13 +39,14 @@ index c5252c1..efd12ce 100644
 +			document.head.appendChild(tag);
 +		}
  		var ModelsSection_module_css_default = {
+ 			"accountStatus": "zGbnIq_accountStatus",
  			"addActions": "zGbnIq_addActions",
- 			"addBlock": "zGbnIq_addBlock",
-@@ -200,6 +232,68 @@ window.__ModuleLoader__.load({
+@@ -476,6 +508,67 @@ window.__ModuleLoader__.load({
+ 				] })]
  			});
  		}
- 		//#endregion
-+		//#region lib/types/client/ModelImageInputToggle.js
++		//#endregion
++				//#region lib/types/client/ModelImageInputToggle.js
 +		/** Whether one model explicitly declares image input in the adapter-owned field. */
 +		function imageInputEnabled(model, field) {
 +			const modalities = model[field];
@@ -103,14 +104,12 @@ index c5252c1..efd12ce 100644
 +					onChange: (event) => {
 +						props.onChange(event.target.value);
 +					}
-+				})]
-+			});
++				})]			});
 +		}
-+		//#endregion
+ 		//#endregion
  		//#region lib/types/client/ModelRow.js
  		/**
- 		* Render consistent model identity, capacity, and input-type controls.
-@@ -278,6 +372,87 @@ window.__ModuleLoader__.load({
+@@ -566,6 +659,87 @@ window.__ModuleLoader__.load({
  			});
  		}
  		//#endregion
@@ -198,7 +197,7 @@ index c5252c1..efd12ce 100644
  		//#region lib/types/client/DeepSeekModelsEditor.js
  		/**
  		* Curated editor for the direct DeepSeek adapter's advisory model catalog.
-@@ -379,6 +554,7 @@ window.__ModuleLoader__.load({
+@@ -667,6 +841,7 @@ window.__ModuleLoader__.load({
  		function DeepSeekModelsEditor(props) {
  			const [editing, setEditing] = (0, react.useState)(() => /* @__PURE__ */ new Map());
  			const [expanded, setExpanded] = (0, react.useState)(() => /* @__PURE__ */ new Set());
@@ -206,7 +205,7 @@ index c5252c1..efd12ce 100644
  			const update = (index, key, value) => {
  				const next = props.models.map((model, at) => {
  					const copy = { ...model };
-@@ -451,6 +627,27 @@ window.__ModuleLoader__.load({
+@@ -739,6 +914,27 @@ window.__ModuleLoader__.load({
  					settleCapacity(index, field);
  				}
  			});
@@ -234,7 +233,7 @@ index c5252c1..efd12ce 100644
  			return (0, react_jsx_runtime.jsxs)("section", {
  				className: ModelsSection_module_css_default["modelCatalog"],
  				"aria-label": props.t("models"),
-@@ -474,46 +671,89 @@ window.__ModuleLoader__.load({
+@@ -762,46 +958,89 @@ window.__ModuleLoader__.load({
  							children: props.t("resetModels")
  						}) : null]
  					}),
@@ -357,7 +356,7 @@ index c5252c1..efd12ce 100644
  					})
  				]
  			});
-@@ -620,6 +860,7 @@ window.__ModuleLoader__.load({
+@@ -908,6 +1147,7 @@ window.__ModuleLoader__.load({
  			const [candidateQuery, setCandidateQuery] = (0, react.useState)("");
  			const [expanded, setExpanded] = (0, react.useState)(/* @__PURE__ */ new Set());
  			const [editing, setEditing] = (0, react.useState)(/* @__PURE__ */ new Map());
@@ -365,7 +364,7 @@ index c5252c1..efd12ce 100644
  			/** Buffer key for one capacity field; the row half moves when rows do. */
  			const bufferKey = (index, field) => `${String(index)}:${field}`;
  			const editCapacity = (index, field, text) => {
-@@ -758,65 +999,133 @@ window.__ModuleLoader__.load({
+@@ -1046,66 +1286,132 @@ window.__ModuleLoader__.load({
  							})
  						]
  					}),
@@ -389,6 +388,7 @@ index c5252c1..efd12ce 100644
 -							inputField: "input",
 -							inputFallback: inputDefaults.get(textOf(model, "id")) ?? props.defaultInput,
 -							inputLoading: catalogProvider !== void 0 && catalog === void 0,
+-							reasoningLevels: props.reasoningLevels,
 -							expanded: expanded.has(index),
 -							disabled,
 -							t,
@@ -426,6 +426,10 @@ index c5252c1..efd12ce 100644
 -								setEditing((current) => reindexOnRemove(current, index));
 -							}
 -						}, index))
+-					}),
+-					(0, react_jsx_runtime.jsxs)("button", {
+-						type: "button",
+-						className: ModelsSection_module_css_default["addModelButton"],
 +					visibleModels.map(({ model, index }) => (0, react_jsx_runtime.jsxs)("div", {
 +						className: ModelsSection_module_css_default["modelEntry"],
 +						children: [(0, react_jsx_runtime.jsxs)("div", {
@@ -448,24 +452,20 @@ index c5252c1..efd12ce 100644
 +									value: textOf(model, "name"),
 +									placeholder: t("modelName"),
 +									"aria-label": `${t("modelName")} ${index + 1}`,
-+						disabled,
-+						onChange: (event) => {
-+							patch(index, { name: event.target.value === "" ? void 0 : event.target.value });
-+						}
- 					}),
--					(0, react_jsx_runtime.jsxs)("button", {
--						type: "button",
--						className: ModelsSection_module_css_default["addModelButton"],
-+					(0, react_jsx_runtime.jsx)(ModelImageInputToggle, {
-+						model,
-+						field: "input",
-+						index,
-+						t,
  						disabled,
 -						onClick: () => {
 -							onChange([...models, { id: "" }]);
 -						},
 -						children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.IconPlusOutlineRegular, { size: 14 }), t("addModel")]
++						onChange: (event) => {
++							patch(index, { name: event.target.value === "" ? void 0 : event.target.value });
++						}					}),
++					(0, react_jsx_runtime.jsx)(ModelImageInputToggle, {
++						model,
++						field: "input",
++						index,
++						t,
++						disabled,
 +						compact: true,
 +						onChange: (enabled) => {
 +							patch(index, { input: imageInputModalities(enabled) });
@@ -551,7 +551,7 @@ index c5252c1..efd12ce 100644
  					failure !== void 0 ? (0, react_jsx_runtime.jsx)("p", {
  						className: ModelsSection_module_css_default["error"],
  						children: failure
-@@ -1216,6 +1525,7 @@ window.__ModuleLoader__.load({
+@@ -1564,6 +1870,7 @@ window.__ModuleLoader__.load({
  			const [protocol, setProtocol] = (0, react.useState)(protocols[0] ?? "");
  			const [keyDraft, setKeyDraft] = (0, react.useState)("");
  			const [models, setModels] = (0, react.useState)([]);
@@ -559,7 +559,7 @@ index c5252c1..efd12ce 100644
  			const [busy, setBusy] = (0, react.useState)(false);
  			const [listBusy, setListBusy] = (0, react.useState)(false);
  			(0, react.useEffect)(() => {
-@@ -1283,6 +1593,11 @@ window.__ModuleLoader__.load({
+@@ -1631,6 +1938,11 @@ window.__ModuleLoader__.load({
  					setBusy(false);
  				}
  			};
@@ -571,16 +571,18 @@ index c5252c1..efd12ce 100644
  			return (0, react_jsx_runtime.jsxs)("div", {
  				className: ModelsSection_module_css_default["editor"],
  				children: [
-@@ -1396,6 +1711,8 @@ window.__ModuleLoader__.load({
+@@ -1742,8 +2054,8 @@ window.__ModuleLoader__.load({
  					(0, react_jsx_runtime.jsx)(ModelListEditor, {
  						models,
  						onChange: setModels,
+-						reasoningLevels,
+-						probe: {
 +						modelQuery,
-+						onModelQueryChange: setModelQuery,
- 						probe: {
++						onModelQueryChange: setModelQuery,						probe: {
  							settingsNs: NS$1,
  							baseURL: normalizedBaseURL,
-@@ -1416,18 +1733,27 @@ window.__ModuleLoader__.load({
+ 							api: protocol,
+@@ -1763,18 +2075,27 @@ window.__ModuleLoader__.load({
  						className: ModelsSection_module_css_default["advancedHint"],
  						children: hint
  					}),
@@ -620,7 +622,7 @@ index c5252c1..efd12ce 100644
  					})
  				]
  			});
-@@ -1522,6 +1848,8 @@ window.__ModuleLoader__.load({
+@@ -1868,6 +2189,8 @@ window.__ModuleLoader__.load({
  				onBusyChange
  			]);
  			const [failure, setFailure] = (0, react.useState)(void 0);
@@ -629,7 +631,7 @@ index c5252c1..efd12ce 100644
  			const [committedOriginal, setCommittedOriginal] = (0, react.useState)(() => schema.getPath(namespace.user, settingsPath));
  			const [expectedRevision, setExpectedRevision] = (0, react.useState)(() => namespace.revision);
  			const root = (0, react.useMemo)(() => schema.rehydrate(namespace.schema), [namespace.schema, schema]);
-@@ -1648,6 +1976,15 @@ window.__ModuleLoader__.load({
+@@ -1984,6 +2307,15 @@ window.__ModuleLoader__.load({
  			const inheritedModels = () => {
  				return schema.getPath(namespace.base, [...settingsPath, "models"]) ?? schema.nodeAtPath(root, [...settingsPath, "models"])?.meta.default;
  			};
@@ -645,7 +647,7 @@ index c5252c1..efd12ce 100644
  			/**
  			* The curated fields of one known adapter family. The family arrives
  			* narrowed so the per-family branches below are total: an unknown namespace
-@@ -1666,6 +2003,8 @@ window.__ModuleLoader__.load({
+@@ -2033,6 +2365,8 @@ window.__ModuleLoader__.load({
  				const catalogProps = {
  					models,
  					overridden: modelsOverridden,
@@ -654,7 +656,7 @@ index c5252c1..efd12ce 100644
  					t,
  					disabled,
  					onChange: (next) => {
-@@ -1709,6 +2048,10 @@ window.__ModuleLoader__.load({
+@@ -2075,6 +2409,10 @@ window.__ModuleLoader__.load({
  					]
  				}), props.credentialOnly === true ? null : (0, react_jsx_runtime.jsxs)("details", {
  					className: ModelsSection_module_css_default["customized"],
@@ -665,7 +667,7 @@ index c5252c1..efd12ce 100644
  					children: [(0, react_jsx_runtime.jsx)("summary", {
  						className: ModelsSection_module_css_default["customizedSummary"],
  						children: t("customized")
-@@ -1797,8 +2140,23 @@ window.__ModuleLoader__.load({
+@@ -2164,8 +2502,23 @@ window.__ModuleLoader__.load({
  					})]
  				})] });
  			};
@@ -690,7 +692,7 @@ index c5252c1..efd12ce 100644
  				children: [
  					props.hideTitle === true ? null : (0, react_jsx_runtime.jsxs)("div", {
  						className: ModelsSection_module_css_default["editorHeader"],
-@@ -1822,20 +2180,15 @@ window.__ModuleLoader__.load({
+@@ -2189,20 +2542,15 @@ window.__ModuleLoader__.load({
  						className: ModelsSection_module_css_default["advancedHint"],
  						children: `${t("model")} ${String(modelFailure.index + 1)}: ${t(modelFailure.key)}`
  					}),
@@ -720,7 +722,7 @@ index c5252c1..efd12ce 100644
  					})
  				]
  			});
-@@ -1941,6 +2294,26 @@ window.__ModuleLoader__.load({
+@@ -2316,6 +2664,26 @@ window.__ModuleLoader__.load({
  		function providerCopy(template, target) {
  			return template.replace("{provider}", () => providerTargetLabel(target));
  		}
@@ -747,7 +749,7 @@ index c5252c1..efd12ce 100644
  		/**
  		* Render the Models section content column.
  		* @param props - slot-delivered injected dependencies.
-@@ -1987,6 +2360,7 @@ window.__ModuleLoader__.load({
+@@ -2366,6 +2734,7 @@ window.__ModuleLoader__.load({
  			const [deleting, setDeleting] = (0, react.useState)(false);
  			const [deleteFailure, setDeleteFailure] = (0, react.useState)(void 0);
  			const [savedTarget, setSavedTarget] = (0, react.useState)(void 0);
@@ -755,7 +757,7 @@ index c5252c1..efd12ce 100644
  			const [dismissedSetup, setDismissedSetup] = (0, react.useState)(() => /* @__PURE__ */ new Set());
  			const announceSaved = (target) => {
  				controller.load().then(() => {
-@@ -2074,6 +2448,10 @@ window.__ModuleLoader__.load({
+@@ -2463,6 +2832,10 @@ window.__ModuleLoader__.load({
  					row,
  					namespace
  				}];
@@ -766,7 +768,7 @@ index c5252c1..efd12ce 100644
  			});
  			const piAi = state.namespaces.get("llm-pi-ai");
  			const protocols = protocolChoices(piAi, schema);
-@@ -2477,9 +2855,24 @@ window.__ModuleLoader__.load({
+@@ -2885,9 +3258,24 @@ window.__ModuleLoader__.load({
  		function assertNever$1(_value) {
  			throw new Error("unexpected DeepSeek onboarding state");
  		}
@@ -793,7 +795,7 @@ index c5252c1..efd12ce 100644
  		* @param props - settings-shell owner state and Models feature dependencies.
  		* @returns the onboarding modal or null when onboarding needs no intervention.
  		*/
-@@ -2488,6 +2881,16 @@ window.__ModuleLoader__.load({
+@@ -2896,6 +3284,16 @@ window.__ModuleLoader__.load({
  			const [apiKey, setApiKey] = (0, react.useState)(explicit);
  			const state = useModels((snapshot) => snapshot);
  			const readiness = onboardingReadiness(state);
@@ -810,7 +812,7 @@ index c5252c1..efd12ce 100644
  			(0, react.useEffect)(() => {
  				if ((automatic || explicit) && state.status === "idle") controller.load();
  			}, [
-@@ -2864,6 +3267,8 @@ window.__ModuleLoader__.load({
+@@ -3248,6 +3646,8 @@ window.__ModuleLoader__.load({
  			addCatalogExhausted: "Every catalog provider is already configured.",
  			addCustomUnavailable: "No API protocol is available to declare.",
  			provider: "Provider",
@@ -819,10 +821,11 @@ index c5252c1..efd12ce 100644
  			close: "Close",
  			cancel: "Cancel",
  			apply: "Apply",
-@@ -2901,6 +3306,14 @@ window.__ModuleLoader__.load({
- 			modelInputTypes: "Input types",
- 			modelInputText: "Text",
- 			modelInputImage: "Image",
+@@ -3306,7 +3706,14 @@ window.__ModuleLoader__.load({
+ 			modelReasoningAdd: "Add level",
+ 			modelReasoningRemove: "Delete level",
+ 			modelReasoningOffValuePlaceholder: "Turns reasoning off",
+-			addModel: "Add model",
 +			modelImageInput: "Image input",
 +			modelImageInputShort: "Vision",
 +			modelImageInputHint: "Declare that this model accepts images; the endpoint must support them.",
@@ -830,11 +833,11 @@ index c5252c1..efd12ce 100644
 +			modelSearchEmpty: "No matching models.",
 +			modelReasoningLevels: "Reasoning effort levels",
 +			modelReasoningLevelsPlaceholder: "e.g. low, medium, high",
-+			modelReasoningLevelsHint: "Comma-separated effort ids. These levels become selectable in chat; leave blank to remove the per-model declaration.",
- 			addModel: "Add model",
++			modelReasoningLevelsHint: "Comma-separated effort ids. These levels become selectable in chat; leave blank to remove the per-model declaration.",			addModel: "Add model",
  			removeModel: "Delete model",
  			modelsEmpty: "No models will be shown in the selector. Unlisted IDs can still be sent directly.",
-@@ -2949,10 +3362,14 @@ window.__ModuleLoader__.load({
+ 			keyBlank: "Enter the API key, or leave the field empty to keep the stored one.",
+@@ -3354,10 +3761,14 @@ window.__ModuleLoader__.load({
  			welcomeBody: "DeepSeek Harness 0.2 is still in preview, and many areas need continued improvement and refinement. We welcome feedback and suggestions from all developers and users. The new desktop app now targets a broad range of users, while developer-related advanced features can be enabled in the settings. DeepSeek Harness’s product features and plugin APIs are expected to continue rapid iteration and evolution, and will gradually stabilize over time.\n\nWe look forward to exploring the limits of intelligence together with users and developers around the world, building on open-source, reusable, and composable infrastructure. We welcome everyone to bring their ideas to life with DeepSeek Harness and participate in the community to enrich the plugin ecosystem.",
  			welcomeContinue: "Continue",
  			welcomeError: "The acknowledgement could not be saved. Please try again.",
@@ -852,10 +855,11 @@ index c5252c1..efd12ce 100644
  			onboardingSaving: "Saving…",
  			keyRequired: "Enter an API key to continue."
  		};
-@@ -3017,6 +3434,14 @@ window.__ModuleLoader__.load({
- 			modelInputTypes: "输入类型",
- 			modelInputText: "文本",
- 			modelInputImage: "图片",
+@@ -3443,7 +3854,14 @@ window.__ModuleLoader__.load({
+ 			modelReasoningAdd: "添加档位",
+ 			modelReasoningRemove: "删除档位",
+ 			modelReasoningOffValuePlaceholder: "关闭思考",
+-			addModel: "添加模型",
 +			modelImageInput: "支持图片输入",
 +			modelImageInputShort: "视觉",
 +			modelImageInputHint: "声明该模型可接收图片；请确认接口实际支持。",
@@ -863,11 +867,11 @@ index c5252c1..efd12ce 100644
 +			modelSearchEmpty: "没有找到匹配的模型。",
 +			modelReasoningLevels: "推理等级",
 +			modelReasoningLevelsPlaceholder: "例如：low, medium, high",
-+			modelReasoningLevelsHint: "使用英文逗号分隔推理等级；这些等级将在会话中可选择，留空则移除此模型的推理等级声明。",
- 			addModel: "添加模型",
++			modelReasoningLevelsHint: "使用英文逗号分隔推理等级；这些等级将在会话中可选择，留空则移除此模型的推理等级声明。",			addModel: "添加模型",
  			removeModel: "删除模型",
  			modelsEmpty: "模型选择器中将不显示任何模型；目录外 ID 仍可直接发送。",
-@@ -3065,10 +3490,14 @@ window.__ModuleLoader__.load({
+ 			keyBlank: "请输入 API 密钥；留空则保持已存储的密钥。",
+@@ -3491,10 +3909,14 @@ window.__ModuleLoader__.load({
  			welcomeBody: "DeepSeek Harness 目前的 0.2 版本仍处于预览阶段，还有许多地方需要持续改进和打磨，希望听取广大开发者和用户的反馈建议。现在，新的桌面端面向广泛用户，开发者相关的进阶功能可在配置中开启使用。预计 DeepSeek Harness 的产品功能以及插件 API 都会继续快速迭代、持续演化，并逐渐趋于稳定。\n\n我们期待与全球用户和开发者一起，在开源、可复用、可组合的基础设施之上，共同探索智能上限。欢迎大家用 DeepSeek Harness 将想法变成现实，与社区一起丰富插件生态。",
  			welcomeContinue: "继续",
  			welcomeError: "暂时无法保存确认状态，请重试。",
@@ -885,7 +889,7 @@ index c5252c1..efd12ce 100644
  			onboardingSaving: "保存中…",
  			keyRequired: "请输入 API 密钥后继续。"
  		};
-@@ -4073,22 +4502,7 @@ window.__ModuleLoader__.load({
+@@ -4499,22 +4921,7 @@ window.__ModuleLoader__.load({
  					}
  				}
  			}, ModelsSection));
