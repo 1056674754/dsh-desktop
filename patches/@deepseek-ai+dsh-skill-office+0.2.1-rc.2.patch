@@ -1,0 +1,15 @@
+diff --git a/node_modules/@deepseek-ai/dsh-skill-office/lib/index.js b/node_modules/@deepseek-ai/dsh-skill-office/lib/index.js
+index fe93693..c377070 100644
+--- a/node_modules/@deepseek-ai/dsh-skill-office/lib/index.js
++++ b/node_modules/@deepseek-ai/dsh-skill-office/lib/index.js
+@@ -91,6 +91,10 @@ function apply(ctx, config = {}) {
+ 				"office-render",
+ 				"office-recalculate",
+ 				"office-export-pdf"
++			].includes(candidate.name) || [
++				"office-docx",
++				"office-pptx",
++				"office-xlsx"
+ 			].includes(candidate.name) ? officeRuntime(config) : "");
+ 			return {
+ 				...summary,

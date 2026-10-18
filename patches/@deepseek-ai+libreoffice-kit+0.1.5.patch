@@ -1,8 +1,8 @@
 diff --git a/node_modules/@deepseek-ai/libreoffice-kit/lib/index.js b/node_modules/@deepseek-ai/libreoffice-kit/lib/index.js
-index 70c51cb..e9bb522 100644
+index aac18a0..2fb9f70 100644
 --- a/node_modules/@deepseek-ai/libreoffice-kit/lib/index.js
 +++ b/node_modules/@deepseek-ai/libreoffice-kit/lib/index.js
-@@ -806,9 +806,26 @@ function plan(ready, request) {
+@@ -994,9 +994,26 @@ function plan(ready, request) {
  		})
  	};
  }
@@ -30,7 +30,7 @@ index 70c51cb..e9bb522 100644
  	signal.throwIfAborted();
  	await mkdir(profile, { mode: 448 });
  	await prepareNativeFontProfile(profile, substitutions);
-@@ -976,6 +993,8 @@ async function renderImagesWithNative(request) {
+@@ -1162,6 +1179,8 @@ async function renderImagesWithNative(request) {
  					rectangle: region.rectangle,
  					byteLength: png.byteLength
  				});
@@ -39,7 +39,7 @@ index 70c51cb..e9bb522 100644
  			}
  			child.stdin.end("DONE\n");
  			if ((await response()).kind !== "done") throw new Error("LibreOffice native renderer did not finish.");
-@@ -1843,7 +1862,7 @@ function createConverterWith(resolvedOptions, engine, shared, onDispose) {
+@@ -2029,7 +2048,7 @@ function createConverterWith(resolvedOptions, engine, shared, onDispose) {
  			}
  		}
  	}
@@ -48,7 +48,7 @@ index 70c51cb..e9bb522 100644
  		await acquire(signal);
  		const deadline = new AbortController();
  		const stopped = AbortSignal.any([signal, deadline.signal]);
-@@ -1874,7 +1893,13 @@ function createConverterWith(resolvedOptions, engine, shared, onDispose) {
+@@ -2060,7 +2079,13 @@ function createConverterWith(resolvedOptions, engine, shared, onDispose) {
  				fontCache: [...shared.fontCache.values()]
  			}, stopped, (entries) => mergeCache(fonts.generation, entries));
  			let images;
@@ -63,7 +63,7 @@ index 70c51cb..e9bb522 100644
  			else if ("fonts" in result) {
  				const profile = join(scratch, "profile");
  				images = await renderImagesWithNative({
-@@ -1888,6 +1913,7 @@ function createConverterWith(resolvedOptions, engine, shared, onDispose) {
+@@ -2074,6 +2099,7 @@ function createConverterWith(resolvedOptions, engine, shared, onDispose) {
  					substitutions: result.substitutions,
  					missingFonts: result.missingFonts,
  					operation: request,
@@ -71,7 +71,7 @@ index 70c51cb..e9bb522 100644
  					signal: stopped
  				});
  			} else throw new ConversionError("failed", "Image worker did not return its manifest.");
-@@ -1928,8 +1954,9 @@ function createConverterWith(resolvedOptions, engine, shared, onDispose) {
+@@ -2114,8 +2140,9 @@ function createConverterWith(resolvedOptions, engine, shared, onDispose) {
  	const converter = {
  		backend: engine.backend,
  		render: (request, signal) => submit(request, "render", signal),
