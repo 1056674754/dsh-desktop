@@ -392,12 +392,19 @@ describe('native Workspace navigation with workbench routing', () => {
     sessionState.ids.push(blankId)
     sessionState.byId[blankId] = { id: blankId, sessionId: blankId, blank: true, cwd: '/project' }
     workspaceState.items[0].sessionIds.push(blankId)
+    // The binding lives in the workbenches client; only its registered
+    // sessionReuseFilter teaches UiWorkspace to skip the bound blank.
+    const { controller, dispose } = attachWorkbenchRouting(service, sessionState, workspaceState)
+    controller.state.active = null
+    controller.state.sessionBindings[blankId] = 'media-workbench'
+
     service.startSession('project')
     await vi.waitFor(() => expect(service.sessions.retain).toHaveBeenCalledWith('new-session', { source: 'mainView' }))
     expect(service.sessions.create).toHaveBeenCalledWith({ workspaceId: 'project' })
     expect(service.sessions.retain).not.toHaveBeenCalledWith(blankId, { source: 'mainView' })
     expect(sessionState.byId['new-session']).toMatchObject({ blank: true, cwd: '/project' })
     expect(workspaceState.items[0].sessionIds).toContain('new-session')
+    dispose()
   })
 
   it('falls back to native New Session after the workbench is closed', async () => {

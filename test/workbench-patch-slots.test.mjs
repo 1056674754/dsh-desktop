@@ -60,7 +60,10 @@ describe('rc.2 workbench patch slots', () => {
     const rendered = []
     const markup = renderToStaticMarkup(React.createElement(shell.Component, {
       collapsed: false, width: 250, startSession, toggleSidebar: () => {}, selectPanel: () => {},
-      usePanels: () => [{ id: 'plugins', label: '插件' }], useShortcuts: () => [], usePanelInfo: () => ({}), t: key => key,
+      // rc.5 navigation-pin seams: the shell renders panel rows through them.
+      setPinned: () => {}, trackEntryClick: () => {},
+      usePanels: () => [{ id: 'plugins', label: '插件' }], useEntryPins: () => [], useEntryActions: () => [],
+      useShortcuts: () => [], usePanelInfo: () => ({}), t: key => key,
       renderSlot: (name, owner) => {
         rendered.push({ name, owner })
         return name === 'sidebar.quickSwitcher' ? React.createElement('span', null, 'Workbench switcher') : null

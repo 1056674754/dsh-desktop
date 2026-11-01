@@ -1,8 +1,8 @@
 diff --git a/node_modules/@deepseek-ai/dsh-llm-deepseek/lib/index.js b/node_modules/@deepseek-ai/dsh-llm-deepseek/lib/index.js
-index 4deb593..23656cc 100644
+index 7bed1e0..e1da25a 100644
 --- a/node_modules/@deepseek-ai/dsh-llm-deepseek/lib/index.js
 +++ b/node_modules/@deepseek-ai/dsh-llm-deepseek/lib/index.js
-@@ -1742,8 +1742,9 @@ function providerError(raw, status, headers) {
+@@ -1771,8 +1771,9 @@ function providerError(raw, status, headers) {
  	const type = typeof error.type === "string" ? error.type : "";
  	const detail = `${type} ${typeof error.code === "string" ? error.code : ""} ${message}`;
  	let code;

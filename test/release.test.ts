@@ -13,7 +13,7 @@ const releaseAssets = [
 ]
 
 /** The exact Harness build every `@deepseek-ai/dsh-*` production dep is pinned to. */
-const HARNESS_VERSION = '0.2.1-rc.2'
+const HARNESS_VERSION = '0.2.1-rc.5'
 
 describe('GitHub release contract', () => {
   it('keeps the package and lockfile versions aligned', async () => {
@@ -129,7 +129,7 @@ describe('GitHub release contract', () => {
       // 0.1.2-alpha.3, so its exclusion assertion is gone. dsh-storage-sqlite is
       // likewise no longer in the closure but its guard is kept defensively.
       '@deepseek-ai/dsh-session-snapshot',
-      // NOTE: 0.2.1-rc.2 ships session titles, terminal sessions, and session
+      // NOTE: 0.2.1-rc.5 ships session titles, terminal sessions, and session
       // search inside the official dsh bundle, so the three guards below were
       // dropped from the exclusion list after the harness upgrade.
       '@deepseek-ai/dsh-storage-sqlite',

@@ -1,8 +1,8 @@
 diff --git a/node_modules/@deepseek-ai/dsh-api-remotes/lib/client.js b/node_modules/@deepseek-ai/dsh-api-remotes/lib/client.js
-index 82b457d..35e6ff4 100644
+index 4b7f5f1..dedd20e 100644
 --- a/node_modules/@deepseek-ai/dsh-api-remotes/lib/client.js
 +++ b/node_modules/@deepseek-ai/dsh-api-remotes/lib/client.js
-@@ -13705,6 +13705,14 @@ window.__ModuleLoader__.load({
+@@ -13819,6 +13819,14 @@ window.__ModuleLoader__.load({
  			"sessionId": zod.z.string().readonly().describe("The created or reused Session, which may differ from the requested `sessionId`."),
  			"agentPreset": zod.z.string().readonly().optional().describe("Preset the Session runs, when the deployment composes a preset roster.")
  		});
@@ -17,7 +17,7 @@ index 82b457d..35e6ff4 100644
  		let _deepseek_ai_dsh_api_session_controller_session_follow_parameter_0$schema$value;
  		const _deepseek_ai_dsh_api_session_controller_session_follow_parameter_0$schema = () => _deepseek_ai_dsh_api_session_controller_session_follow_parameter_0$schema$value ??= zod.z.object({
  			"address": zod.z.union([zod.z.object({
-@@ -15330,6 +15338,55 @@ window.__ModuleLoader__.load({
+@@ -15444,6 +15452,55 @@ window.__ModuleLoader__.load({
  						"column": 3
  					}
  				},

@@ -1,0 +1,49 @@
+diff --git a/node_modules/@deepseek-ai/dsh-client-ui-chat/lib/client.js b/node_modules/@deepseek-ai/dsh-client-ui-chat/lib/client.js
+index 3ddb504..510bcc4 100644
+--- a/node_modules/@deepseek-ai/dsh-client-ui-chat/lib/client.js
++++ b/node_modules/@deepseek-ai/dsh-client-ui-chat/lib/client.js
+@@ -53,6 +53,22 @@ window.__ModuleLoader__.load({
+ 		function isAbsoluteWorkspacePath(path) {
+ 			return path.startsWith("/") || isWindowsStylePath(path);
+ 		}
++		function hostPathForOpen(cwd, path) {
++			const normalized = path.replace(/\\/g, "/");
++			if (isAbsoluteWorkspacePath(normalized)) return path;
++			const root = cwd === void 0 ? "" : cwd.replace(/\\/g, "/").replace(/\/+$/, "");
++			if (root === "") return path;
++			return `${root}/${normalized.replace(/^\/+/, "")}`;
++		}
++		async function openResolvedHostFile(ctx, sessionId, cwd, hostPath, options) {
++			const address = fileAddressFor(sessionId, cwd, hostPath);
++			if (ctx.sidebarRightTabs.candidates(address).length === 0) {
++				await ctx.remote.session.openWorkspacePath({ path: hostPath });
++				return;
++			}
++			if (options?.line === void 0) ctx.sidebarRight.openResource(address);
++			else ctx.sidebarRight.openResource(address, { params: { line: options.line } });
++		}
+ 		/**
+ 		* Resolve a Workspace-relative path into the Host-facing spelling used by path operations.
+ 		* @param cwd - Session Workspace root, when known.
+@@ -13276,10 +13292,17 @@ window.__ModuleLoader__.load({
+ 							fileMentions: (owner) => ctx.get("chatFileMentions")?.forClosing(owner, sessionId),
+ 							openFile: async (path, options) => {
+ 								const cwd = ctx.sessions.list.getSnapshot().byId[sessionId]?.cwd;
+-								const url = fileAddressFor(sessionId, cwd, path);
+-								if (options?.line === void 0) ctx.sidebarRight.openResource(url);
+-								else ctx.sidebarRight.openResource(url, { params: { line: options.line } });
+-								await Promise.resolve();
++								if (options?.revealInFileManager === true) {
++									const opened = await ctx.remote.session.openWorkspacePath({ path: hostPathForOpen(cwd, path) });
++									if (!opened.ok) throw opened.error;
++									return;
++								}
++								const byName = await session.readFileHostPath({ name: path });
++								if (byName.ok) {
++									await openResolvedHostFile(ctx, sessionId, cwd, byName.value.path);
++									return;
++								}
++								await openResolvedHostFile(ctx, sessionId, cwd, hostPathForOpen(cwd, path), options);
+ 							},
+ 							openExternalLink: (url) => {
+ 								if (linkOpening.getSnapshot() === "sidebar" && ctx.get("sidebarRightTabs")?.get("browser") !== void 0) ctx.sidebarRight.openTab("browser", { params: { url } });
