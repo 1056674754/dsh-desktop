@@ -54,7 +54,9 @@ async function fixture(existingRoot) {
         on: pluginCtx.on.bind(pluginCtx),
         get: pluginCtx.get.bind(pluginCtx),
         tools: { register: (tool) => tools.push(tool) },
-        connection: { rpc: { handle: (_route, handler) => { rpc = handler } } }
+        connection: { rpc: { handle: (_route, handler) => { rpc = handler } } },
+        // dsh-ppt's automatic-skill preStep resolves each Agent's cwd here.
+        workingDirectory: { ensure: async () => root }
       }
       await apply(host, { root })
     }

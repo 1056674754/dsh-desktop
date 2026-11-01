@@ -296,6 +296,7 @@
     "ws": "^8.21.3"
   },
   "devDependencies": {
+    "@electron/notarize": "2.5.0",
     "@types/js-yaml": "4.0.9",
     "@types/node": "24.10.1",
     "@types/qrcode": "^1.5.6",
@@ -303,13 +304,13 @@
     "electron": "43.0.0",
     "electron-builder": "26.15.3",
     "electron-vite": "5.0.0",
+    "esbuild": "0.25.12",
     "fflate": "0.8.3",
     "patch-package": "^8.0.1",
     "tar": "7.5.22",
     "typescript": "5.9.3",
     "vitest": "^4.1.10",
-    "yaml": "^2.8.3",
-    "esbuild": "0.25.12"
+    "yaml": "^2.8.3"
   },
   "overrides": {
     "koffi": "3.1.5"
@@ -493,7 +494,8 @@
       "target": [
         "dmg",
         "zip"
-      ]
+      ],
+      "notarize": false
     },
     "dmg": {
       "format": "UDBZ"
@@ -525,6 +527,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
     },
-    "afterPack": "scripts/after-pack.cjs"
+    "afterPack": "scripts/after-pack.cjs",
+    "afterSign": "scripts/notarize-macos.mjs"
   }
 }
