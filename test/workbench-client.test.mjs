@@ -2631,7 +2631,7 @@ describe('workbench market screenshot and metadata display', () => {
     await expect(service.open('o/new')).resolves.toBeUndefined()
   })
 
-  it('sorts market cards by visible stars, downloads, update time and name without changing the default order', async () => {
+  it('defaults market cards to descending stars and offers downloads, update time and name sorting', async () => {
     const { service } = await fixture()
     service.remoteCatalog = [
       listed({ id: 'o/zulu', name: 'Zulu', metrics: { githubStars: { value: 2 }, npmDownloads30d: { value: 8 } }, updatedAt: '2026-01-02T00:00:00Z' }),
@@ -2645,10 +2645,11 @@ describe('workbench market screenshot and metadata display', () => {
     const sort = (value) => {
       const select = ui.find(ui.render(), node => node.type === 'select' && node.props['aria-label'] === '工作台排序方式')[0]
       expect(select.props.value).toBeDefined()
-      expect(select.props.children.map(option => option.props.value)).toEqual(['default', 'stars', 'downloads', 'updated', 'name'])
+      expect(select.props.children.map(option => option.props.value)).toEqual(['stars', 'downloads', 'updated', 'name'])
       select.props.onChange({ target: { value } })
     }
-    expect(cards()).toEqual(['o/zulu', 'o/alpha', 'o/bravo', 'o/missing'])
+    expect(ui.find(ui.render(), node => node.type === 'select' && node.props['aria-label'] === '工作台排序方式')[0].props.value).toBe('stars')
+    expect(cards()).toEqual(['o/alpha', 'o/bravo', 'o/zulu', 'o/missing'])
     sort('stars')
     expect(cards()).toEqual(['o/alpha', 'o/bravo', 'o/zulu', 'o/missing'])
     sort('downloads')
@@ -2657,8 +2658,8 @@ describe('workbench market screenshot and metadata display', () => {
     expect(cards()).toEqual(['o/alpha', 'o/bravo', 'o/zulu', 'o/missing'])
     sort('name')
     expect(cards()).toEqual(['o/alpha', 'o/bravo', 'o/missing', 'o/zulu'])
-    sort('default')
-    expect(cards()).toEqual(['o/zulu', 'o/alpha', 'o/bravo', 'o/missing'])
+    sort('stars')
+    expect(cards()).toEqual(['o/alpha', 'o/bravo', 'o/zulu', 'o/missing'])
   })
 
   it('keeps sorting active while searching, filtering categories and switching collections', async () => {
@@ -2673,7 +2674,6 @@ describe('workbench market screenshot and metadata display', () => {
     const ui = interactiveMarket(service)
     const cards = () => ui.find(ui.render(), node => node.type === 'article').map(node => node.props.key)
     const node = predicate => ui.find(ui.render(), predicate)[0]
-    node(item => item.type === 'select' && item.props['aria-label'] === '工作台排序方式').props.onChange({ target: { value: 'stars' } })
     expect(cards()).toEqual(['o/c', 'o/b', 'o/a'])
     node(item => item.type === 'select' && item.props['aria-label'] === '按分类筛选').props.onChange({ target: { value: '效率' } })
     expect(cards()).toEqual(['o/c', 'o/a'])
@@ -2750,6 +2750,48 @@ describe('workbench market screenshot and metadata display', () => {
     expect(ui.find(ui.render(), node => node.type?.name === 'DetailModal')[0]?.props.entry).toBeFalsy()
     preview.props.onClick()
     expect(ui.find(ui.render(), node => node.type?.name === 'DetailModal')[0].props.entry.catalogId).toBe('o/helper')
+  })
+
+  it('pages market entries with a show more button and increments on demand', async () => {
+    const { service } = await fixture()
+    service.remoteCatalog = Array.from({ length: 30 }, (_, i) => ({
+      id: `owner/bench-${i}`,
+      name: `Bench ${i}`,
+      title: `Bench ${i}`,
+      owner: 'owner',
+      repository: `bench-${i}`,
+      url: `https://github.com/owner/bench-${i}`,
+      category: 'other',
+      description: { zh: `简介 ${i}` },
+      version: '1.0.0',
+      license: 'MIT',
+      distribution: { type: 'npm', version: '1.0.0' },
+      screenshots: [{ url: 'https://example.com/p.png', alt: 'p', sha256: 'a'.repeat(64), width: 800, height: 600, bytes: 100 }],
+      listed: true
+    }))
+    service.catalogLoaded = true
+    service.publish()
+
+    const ui = interactiveMarket(service, 'market')
+    let tree = ui.render()
+    let cards = ui.find(tree, node => node.type === 'article')
+    expect(cards).toHaveLength(24)
+
+    let moreButton = ui.find(tree, node => node.props?.className?.includes('dshWbMore') && node.type?.name === 'Button')[0]
+    expect(moreButton).toBeTruthy()
+    expect(moreButton.props.children).toEqual(['加载更多'])
+
+    let countHint = ui.find(tree, node => node.props?.className === 'dshWbMoreCount')[0]
+    expect(countHint.props.children).toEqual(['已显示 24 / 共 30 个工作台'])
+
+    // Click more
+    moreButton.props.onClick()
+    tree = ui.render()
+    cards = ui.find(tree, node => node.type === 'article')
+    expect(cards).toHaveLength(30)
+
+    moreButton = ui.find(tree, node => node.props?.className?.includes('dshWbMore') && node.type?.name === 'Button')[0]
+    expect(moreButton).toBeUndefined()
   })
 
   it('makes the card title a repository link', async () => {

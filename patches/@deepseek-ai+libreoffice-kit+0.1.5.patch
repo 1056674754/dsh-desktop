@@ -84,7 +84,7 @@ index aac18a0..2fb9f70 100644
  			task.finally(() => active.delete(task)).catch(() => {});
  			return task;
 diff --git a/node_modules/@deepseek-ai/libreoffice-kit/lib/types/index.d.ts b/node_modules/@deepseek-ai/libreoffice-kit/lib/types/index.d.ts
-index a58dce3..1af8c47 100644
+index a58dce3..f92027d 100644
 --- a/node_modules/@deepseek-ai/libreoffice-kit/lib/types/index.d.ts
 +++ b/node_modules/@deepseek-ai/libreoffice-kit/lib/types/index.d.ts
 @@ -1,4 +1,4 @@
@@ -106,7 +106,7 @@ index a58dce3..1af8c47 100644
      convert(request: ConversionRequest, signal?: AbortSignal): Promise<RenderResult>;
      /**
 diff --git a/node_modules/@deepseek-ai/libreoffice-kit/lib/types/native-image-renderer.d.ts b/node_modules/@deepseek-ai/libreoffice-kit/lib/types/native-image-renderer.d.ts
-index 01be9f4..a7f3884 100644
+index 01be9f4..7570061 100644
 --- a/node_modules/@deepseek-ai/libreoffice-kit/lib/types/native-image-renderer.d.ts
 +++ b/node_modules/@deepseek-ai/libreoffice-kit/lib/types/native-image-renderer.d.ts
 @@ -1,4 +1,4 @@
@@ -122,4 +122,3 @@ index 01be9f4..a7f3884 100644
 +    readonly onImage?: (image: RenderedImage, pageCount: number) => void | Promise<void>;
  }): Promise<RenderImagesResult>;
  //# sourceMappingURL=native-image-renderer.d.ts.map
-\ No newline at end of file

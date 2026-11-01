@@ -64,7 +64,7 @@
   "license": "MIT",
   "dependencies": {
     "@aiden0z/pptx-renderer": "1.2.4",
-    "@deepseek-ai/schemastery": "3.18.2",
+    "@deepseek-ai/schemastery": "3.18.5",
     "fflate": "^0.8.3",
     "js-yaml": "^4.2.0",
     "jsdom": "29.1.1",

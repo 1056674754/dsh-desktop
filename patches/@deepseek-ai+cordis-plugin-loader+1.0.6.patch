@@ -1,8 +1,8 @@
 diff --git a/node_modules/@deepseek-ai/cordis-plugin-loader/lib/index.js b/node_modules/@deepseek-ai/cordis-plugin-loader/lib/index.js
-index aed07af..54c9215 100644
 --- a/node_modules/@deepseek-ai/cordis-plugin-loader/lib/index.js
 +++ b/node_modules/@deepseek-ai/cordis-plugin-loader/lib/index.js
-@@ -151,11 +151,39 @@ var EntryTree = class EntryTree {
+@@ -150,13 +150,41 @@
+ 	getTasks() {
  		return [...this.entries()].map((entry) => entry._initTask || entry.fiber?.inertia).filter(isNonNullable);
  	}
  	/** Wait until this tree has no pending import or lifecycle tasks. */
@@ -44,7 +44,9 @@ index aed07af..54c9215 100644
  		}
  	}
  	ensureId(options) {
-@@ -309,6 +337,7 @@ function sortKeys(object, prepend = ["id", "name"], append = ["config"]) {
+ 		if (!options.id) do
+@@ -308,8 +336,9 @@
+ }
  /** One configured plugin node inside an `EntryTree`. */
  var Entry = class Entry {
  	loader;
@@ -52,7 +54,9 @@ index aed07af..54c9215 100644
  	static key = Symbol.for("cordis.entry");
  	ctx;
  	fiber;
-@@ -432,6 +461,23 @@ var Entry = class Entry {
+ 	/** Raw import result before export normalization; HMR updates it after a successful reload. */
+@@ -433,8 +462,25 @@
+ 			entry = entry.parent.ctx.fiber.entry;
  		} while (entry);
  		return result;
  	};
@@ -76,13 +80,16 @@ index aed07af..54c9215 100644
  	/** Import and start the configured plugin if it is not already running. */
  	async init() {
  		try {
-@@ -449,7 +495,9 @@ var Entry = class Entry {
- 		let exports;
+ 			await (this._initTask ??= this._init());
+@@ -450,9 +496,11 @@
+ 	async _init() {
+ 		let moduleNamespace;
  		try {
- 			exports = await this.parent.tree.import(this.options.name, this.getOuterStack);
+ 			moduleNamespace = await this.parent.tree.import(this.options.name, this.getOuterStack);
 +			this.lastImportError = void 0;
  		} catch (error) {
 +			this.lastImportError = error;
  			this.ctx.logger.error(error);
  			return;
  		} finally {
+ 			this._initTask = void 0;
