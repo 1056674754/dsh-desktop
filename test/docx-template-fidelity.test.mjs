@@ -16,7 +16,10 @@ const sha = data => createHash('sha256').update(data).digest('hex')
 async function fixture(templateId = 'government-notice') {
   const workspace = await realpath(await mkdtemp(join(tmpdir(), 'docx-layout-'))); cleanups.push(() => rm(workspace, { recursive: true, force: true }))
   const ctx = new Context()
-  for (const plugin of [SystemPrompt, ToolRuntime, LocalSandboxProvider, LocalSubprocessRuntime]) { const fork = ctx.plugin(plugin, {}); await fork; cleanups.push(() => fork.dispose()) }
+  // alpha.2 dispatches tool calls through a pluggable executor; the real
+  // harness composes the native one.
+  const nativeExecutor = await import('@deepseek-ai/dsh-tool-executor-native')
+  for (const plugin of [SystemPrompt, ToolRuntime, LocalSandboxProvider, LocalSubprocessRuntime, nativeExecutor]) { const fork = ctx.plugin(plugin, {}); await fork; cleanups.push(() => fork.dispose()) }
   const catalog = JSON.parse(await readFile(resolve('packages/dsh-desktop-office/sources/catalog.json'), 'utf8'))
   const sourceRoot = resolve('packages/dsh-desktop-office/sources', catalog.find(item => item.id === templateId).source)
   const source = await readFile(join(sourceRoot, 'example.docx'))
@@ -39,7 +42,11 @@ async function fixture(templateId = 'government-notice') {
   const normal = prepared.paragraphs.find(p => p.text.startsWith('为做好2025'))
   const other = prepared.paragraphs.find(p => p.text === '一、活动主题和时间')
   const plan = templateId === 'government-notice' ? { output_path: 'result.docx', replacements: [{ id: 'p1', text: '示例市公园管理局文件' }, { id: title.id, text: '关于公园节假日开放安排的通告' }, { id: normal.id, text: '现将公园节假日开放有关事项通告如下。' }], additions: [{ after: normal.id, source: normal.id, text: '具体开放时间以已确认的安排为准。' }], removals: [other.id] } : { output_path: 'result.docx', replacements: [{ id: prepared.paragraphs.find(p => p.text && p.can_remove).id, text: '当前材料的标题与内容' }] }
-  const call = async (name, args) => ctx.tools.execute({ name, arguments: args, callId: randomUUID(), ...exec })
+  // alpha.2 executors take a batch; unwrap the single outcome for these tests.
+  const call = async (name, args) => {
+    const batch = await ctx.tools.execute({ calls: [{ id: randomUUID(), name, arguments: JSON.stringify(args) }], ...exec })
+    return batch.results[0].result
+  }
   return { ctx, workflow, prepared, plan, call, delivered, workspace, modes, exec, setDirectory: value => { currentDirectory = value }, setMode: value => { mode = value }, clearSelection: () => { selection = {} } }
 }
 it('writes the real Word worker output in a changed session directory', async () => {
@@ -145,6 +152,9 @@ it.each(['coffee-market', 'equity-research', 'meeting-minutes'])('retains the na
   expect((await f.call('office_template_write', f.plan)).isError).toBe(false)
   expect((await f.call('present', { files: [{ path: 'result.docx' }] })).isError).toBe(false)
 })
+// One fixture plus eight mutations uses 18 sequential Python launches
+// (prepare/write, then mutate/validate per case). Budget the batch separately
+// from each 45-second worker bound, including contention in the full suite.
 it('blocks layout and style mutations before delivery', async () => {
   const f = await fixture(); await f.call('office_template_write', f.plan)
   const resultPath = join(f.workspace, 'result.docx')
@@ -173,11 +183,11 @@ else:
  parts['word/document.xml']=E.tostring(d)
 with zipfile.ZipFile(p,'w',zipfile.ZIP_DEFLATED) as z:
  for name,data in parts.items():z.writestr(name,data)
-`, resultPath, kind])
+`, resultPath, kind], { timeout: 45_000 })
     expect((await f.call('present', { files: [{ path: 'result.docx' }] })).isError).toBe(true)
     expect(f.delivered).not.toHaveBeenCalled()
   }
-}, 60_000)
+}, 120_000)
 
 it('retains mixed heading/body typography with explicit native run references', async () => {
   const f = await fixture()

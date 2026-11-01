@@ -5,6 +5,12 @@ import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { runInNewContext } from 'node:vm'
 import { it, expect } from 'vitest'
+import { Context } from '@deepseek-ai/cordis'
+import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
+import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
+import '@deepseek-ai/dsh-session-persistence'
+import { RepairAgentService } from '../src/main/repair-agent'
+import { RepairSessionStore } from '../src/main/state/repair-agent-sessions'
 import { HarnessRuntime } from '../src/main/runtime/harness-runtime'
 import { ensureSafeModeProfile, SAFE_MODE_PROFILE } from '../src/main/state/safe-mode-profile'
 import { BRIDGE_READY_LINE } from '../packages/dsh-desktop-log-bridge/index.js'
@@ -70,6 +76,16 @@ registerHooks({ resolve(specifier, context, next) {
     if (!url || !token) throw new Error('Recovery endpoint was not announced')
     const login = await fetch(`${url}/?token=${encodeURIComponent(token)}`, { redirect: 'manual' })
     const cookie = login.headers.getSetCookie().map((value) => value.split(';')[0]).join('; ')
+    // Electron fetches this endpoint instead of the static index. Exercise the
+    // real permission-aware injection subscriber, not only browser HTML.
+    expect((await fetch(new URL('/api/desktop/boot', url))).status).toBe(401)
+    const desktopBoot = await fetch(new URL('/api/desktop/boot', url), { headers: { Cookie: cookie } })
+    expect(desktopBoot.status).toBe(200)
+    const payload = await desktopBoot.json()
+    expect(payload.injections).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: 'global', name: '__DSH_BOOT__' }),
+      expect.objectContaining({ kind: 'global', name: '__DSH_REMOTE_ACCESS__', value: expect.objectContaining({ owner: true }) })
+    ]))
     const html = await (await fetch(url, { headers: { Cookie: cookie } })).text()
     const scriptUrls = [...html.matchAll(/<script[^>]+src="([^"]+)"/gu)].map((match) => match[1])
     const bootstrap = scriptUrls.find((src) => src?.includes('plugins/??@deepseek-ai/dsh-client-modules/client.js'))
@@ -86,11 +102,62 @@ registerHooks({ resolve(specifier, context, next) {
     const created = await fetch(new URL('/api/session/create', url), {
       method: 'POST',
       headers: { Cookie: cookie, 'content-type': 'application/json' },
-      body: JSON.stringify({ type: 'client-request', rpcId: 'safe-mode-session', method: 'session/create', payload: { args: { request: {} } } })
+      body: JSON.stringify({ type: 'client-request', rpcId: 'safe-mode-session', method: 'session/create', payload: { args: { request: { cwd: home, agentPreset: 'desktop-repair' } } } })
     })
     const envelope = await created.json()
     expect(envelope.result?.ok, JSON.stringify(envelope)).toBe(true)
     expect(envelope.result?.value?.sessionId).toBeTruthy()
+    expect(envelope.result?.value?.agentPreset).toBe('desktop-repair')
+    // Desktop and Harness can both restart while the ordinary session remains
+    // durable. Restore through the real cold-safe list API, not a live map.
+    const admitted = await fetch(new URL('/api/session/prompt', url), {
+      method: 'POST', headers: { Cookie: cookie, 'content-type': 'application/json' },
+      body: JSON.stringify({ type: 'client-request', rpcId: 'repair-persist', method: 'session/prompt', payload: { args: { request: {
+        requestId: 'repair-persist-request', sessionId: envelope.result.value.sessionId,
+        mode: 'queue', content: [{ type: 'text', text: 'Diagnose startup failure' }]
+      } } } })
+    })
+    expect((await admitted.json()).result?.ok).toBe(true)
+    // Prompt admission only queues a live event; JSONL batches writes for
+    // 200 ms. Windows SIGTERM stops the process without draining that batch.
+    // Observe the actual stored prompt through an independent read-only
+    // backend before exercising cold restoration, rather than assuming the
+    // acknowledgement (or a fixed sleep) is a durability checkpoint.
+    const observer = new Context()
+    await observer.plugin(SessionStore)
+    const persistence = await observer.plugin(JsonlSessionPersistence, { root: join(home, 'sessions') })
+    try {
+      const sessionId = SessionId(envelope.result.value.sessionId)
+      await expect.poll(async () => {
+        if (!await observer.sessionPersistence.stat(sessionId)) return ''
+        const handle = await observer.sessionPersistence.open(sessionId, 'read')
+        try {
+          return JSON.stringify((await handle.read(0, 100)).events)
+        } finally {
+          await handle.close()
+        }
+      }, { timeout: 10_000 }).toContain('repair-persist-request')
+    } finally {
+      await persistence.dispose()
+    }
+    const sessionStateDirectory = join(home, 'desktop-repair-state')
+    await new RepairSessionStore(sessionStateDirectory).save('safe', {
+      sessionId: envelope.result.value.sessionId, briefed: false
+    })
+    await recovered.stop()
+    await recovered.start(home, SAFE_MODE_PROFILE)
+    expect(recovered.snapshot().phase, recovered.snapshot().logs.join('\n')).toBe('ready')
+    const repair = new RepairAgentService({
+      harnessUrl: () => recovered.snapshot().url,
+      harnessAuthToken: () => recovered.snapshot().authToken,
+      environment: () => 'safe', sessionStateDirectory,
+      ensureHarnessReady: async () => {}, workspaceDirectory: home, locale: () => 'en'
+    })
+    expect(await repair.initSession()).toMatchObject({
+      ok: true, sessionId: envelope.result.value.sessionId, created: false, needsBriefing: true
+    })
+    repair.dispose()
+
     // Recovery uses its own overlay and never edits the normal composition.
     expect(await readFile(normalPatch, 'utf8')).toContain('name: \'dsh-ppt-composer\'')
   } finally {
